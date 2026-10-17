@@ -1,0 +1,1 @@
+ALTER TABLE `ad_expenses` ADD `member_email` text;

@@ -1,0 +1,7 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {normalizeStocks,stockSelection} from '../app/atlas-stock.ts';
+import {atlasInventoryTotals,filterAtlasInventory} from '../app/atlas-inventory-rules.ts';
+const stock=normalizeStocks([{stockId:'a',sku:'P1',name:'Téléphone',available:12,frozen:false},{stockId:'b',sku:'P2',name:'Press',available:0,frozen:false},{stockId:'c',sku:'P3',name:'Gelé',available:5,frozen:true}]);
+test('full Atlas view retains available, zero and frozen stock without limiting the catalogue',()=>{assert.deepEqual(filterAtlasInventory(stock,'','all'),stock);assert.deepEqual(atlasInventoryTotals(stock),{products:3,units:17,available:1,empty:1,frozen:1});const many=normalizeStocks(Array.from({length:130},(_,i)=>({stockId:String(i),available:i})));assert.equal(filterAtlasInventory(many,'','all').length,130)});
+test('stock search handles accents, SKU and exact stock identifier; filters distinguish frozen from empty',()=>{assert.equal(filterAtlasInventory(stock,' telephone ','all')[0].stockId,'a');assert.equal(filterAtlasInventory(stock,'p2','empty')[0].stockId,'b');assert.equal(filterAtlasInventory(stock,'P3','frozen')[0].stockId,'c');assert.equal(filterAtlasInventory(stock,'press','available').length,0);assert.equal(filterAtlasInventory(stock,'missing','all').length,0)});
+test('displaying all products does not allow unavailable or frozen order items',()=>{assert.throws(()=>stockSelection(stock,'b',1));assert.throws(()=>stockSelection(stock,'c',1));assert.equal(stockSelection(stock,'a',1).stockId,'a')});
