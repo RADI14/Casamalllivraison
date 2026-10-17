@@ -1,7 +1,7 @@
 'use client';
 import {createContext,useContext,useEffect,useState} from 'react';
 import {translations} from './translations';
-import './cloudflare-translations';
+import './railway-translations';
 import './whatsapp-translations';
 export type Language='fr'|'en'|'ar';
 const locales={fr:'fr-MA',en:'en-GB',ar:'ar-MA'};

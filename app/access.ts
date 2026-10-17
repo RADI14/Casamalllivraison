@@ -1,4 +1,4 @@
-import {env} from 'cloudflare:workers';
+import {env} from '../server/runtime';
 import {getChatGPTUser} from './chatgpt-auth';
 import {getDb} from '../db';
 import {members,orders} from '../db/schema';

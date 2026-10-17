@@ -1,12 +1,9 @@
-import {headers} from 'next/headers';
+import {cookies} from 'next/headers';
 import {redirect} from 'next/navigation';
-import {env} from 'cloudflare:workers';
-import {accessIdentity,accessIssuer} from './cloudflare-access';
+import {cookieName,sessionEmail} from '../server/sessions';
 export type ChatGPTUser={userId:string;displayName:string;email:string;fullName:string|null};
-const settings=()=>env as unknown as Record<string,string>;
-export function cloudflareAuthReady(){const s=settings();return !!accessIssuer(s.CF_ACCESS_TEAM_DOMAIN)&&!!s.CF_ACCESS_AUD?.trim()&&!!s.OWNER_EMAIL?.trim()}
-// Legacy export names preserve the application interface; only verified Access JWTs are trusted.
-export async function getChatGPTUser():Promise<ChatGPTUser|null>{if(!cloudflareAuthReady())return null;const h=await headers(),s=settings();return accessIdentity(h.get('cf-access-jwt-assertion'),s.CF_ACCESS_TEAM_DOMAIN,s.CF_ACCESS_AUD)}
-export async function requireChatGPTUser(returnTo:string):Promise<ChatGPTUser>{const u=await getChatGPTUser();if(u)return u;redirect(chatGPTSignInPath(returnTo))}
-export function chatGPTSignInPath(returnTo:string){const safe=returnTo.startsWith('/')&&!returnTo.startsWith('//')?returnTo:'/';return '/cdn-cgi/access/login?redirect_url='+encodeURIComponent(safe)}
-export function chatGPTSignOutPath(){return '/cdn-cgi/access/logout'}
+export function cloudflareAuthReady(){return !!process.env.OWNER_EMAIL?.trim()&&!!process.env.ADMIN_PASSWORD&&process.env.ADMIN_PASSWORD.length>=12&&!!process.env.SQLITE_PATH}
+export async function getChatGPTUser():Promise<ChatGPTUser|null>{if(!cloudflareAuthReady())return null;const email=sessionEmail((await cookies()).get(cookieName)?.value);return email?{userId:email,email,displayName:email,fullName:null}:null}
+export async function requireChatGPTUser(returnTo:string):Promise<ChatGPTUser>{const u=await getChatGPTUser();if(!u)return redirect(chatGPTSignInPath(returnTo));return u}
+export function chatGPTSignInPath(returnTo:string){return '/login'}
+export function chatGPTSignOutPath(){return '/login?logout=1'}

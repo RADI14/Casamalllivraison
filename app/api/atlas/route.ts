@@ -1,4 +1,4 @@
-import {env} from 'cloudflare:workers';
+import {env} from '../../../server/runtime';
 import {getActor} from '../../access';
 import {atlasRead,normalizeStocks} from '../../atlas-stock';
 export async function GET(){

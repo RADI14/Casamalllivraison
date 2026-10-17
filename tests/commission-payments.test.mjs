@@ -35,5 +35,5 @@ test('stale partial balances cannot be recorded and a paid status correction blo
 });
 test('commission endpoints scope agent data and reserve settlement writes for administrators',()=>{
  const source=readFileSync(new URL('../app/api/commissions/route.ts',import.meta.url),'utf8');
- assert.match(source,/orders\)\.where\(orderScope\(a\)\)/);assert.match(source,/eq\(members.email,a.email\)/);assert.match(source,/eq\(commissionPayments.memberEmail,a.email\)/);assert.match(source,/a\?\.role!=='admin'/);assert.match(source,/req.headers.get\('origin'\)!==new URL\(req.url\).origin/);
+ assert.match(source,/orders\)\.where\(orderScope\(a\)\)/);assert.match(source,/eq\(members.email,a.email\)/);assert.match(source,/eq\(commissionPayments.memberEmail,a.email\)/);assert.match(source,/a\?\.role!=='admin'/);assert.match(source,/!sameOrigin\(req\)/);
 });

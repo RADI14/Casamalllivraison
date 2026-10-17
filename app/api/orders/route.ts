@@ -1,4 +1,5 @@
-import {env} from 'cloudflare:workers';
+import {sameOrigin} from '../../../server/request-origin';
+import {env} from '../../../server/runtime';
 import {getActor,orderScope} from '../../access';
 import {canAccessOrder,commission} from '../../rules';
 import {getDb} from '../../../db';
@@ -12,7 +13,7 @@ const out=(data:any,status=200)=>Response.json(data,{status});
 export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));return out({orders:rows.map(r=>{const {unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),commission:commission(r),payload:JSON.parse(r.payload)}}),role:actor.role});}
 export async function POST(req:Request){
  const user=await getActor();if(!user)return out({error:'Accès non autorisé'},403);
- if(req.headers.get('origin')!==new URL(req.url).origin)return out({error:'Origine refusée'},403);
+ if(!sameOrigin(req))return out({error:'Origine refusée'},403);
  let b:any;try{b=await req.json()}catch{return out({error:'Requête invalide'},400)}
  const db=getDb();
  if(b.action==='create'){

@@ -1,59 +1,45 @@
-# Casamall Livraison — Cloudflare Workers
+# Casamall Livraison — Railway
 
-Plateforme de commandes, stock Atlas, équipe, commissions, coûts et profit. Français, anglais et arabe.
+Commandes, stock Atlas, équipe, commissions et profit en français, anglais et arabe. Cette branche `railway` fonctionne sous Node.js 24 avec une base SQLite sur volume persistant. Aucun compte Cloudflare ou Cloudflare Access n’est nécessaire.
 
-## Correction du déploiement
+## Déployer
 
-L’application utilise **Vinext**, pas une construction Next.js/OpenNext. Les fichiers du serveur sont générés dans `dist/server/`, pas dans `.next/`. `wrangler.json` empêche la détection automatique OpenNext. Son étape de construction génère et vérifie le Worker Vinext avant l’envoi.
+1. Dans Railway : New Project → Deploy from GitHub Repo → RADI14/Casamalllivraison. Sélectionner la branche **railway** dans les paramètres Source. Le Dockerfile et railway.json configurent la construction et le démarrage.
+2. Ajouter un **Volume** à ce service, chemin de montage **/data**. Garder **une seule instance** ; ne pas lancer plusieurs réplicas de cette base SQLite.
+3. Ajouter ces variables au service :
 
-Dans **Cloudflare → Workers & Pages → casamalllivraison → Settings → Builds** :
-
-| Paramètre | Valeur |
+| Variable | Valeur |
 | --- | --- |
-| Branche | `main` |
-| Root directory | `/` |
-| Build command | laisser vide / None |
-| Deploy command | `pnpm run deploy` |
+| OWNER_EMAIL | Votre email administrateur, en minuscules |
+| ADMIN_PASSWORD | Votre mot de passe administrateur privé, entre 12 et 128 caractères |
+| APP_URL | Le lien HTTPS public généré par Railway, sans slash final |
+| SQLITE_PATH | `/data/casamall.sqlite` |
+| ATLAS_API_KEY | Votre clé Atlas privée |
 
-Le deploy command construit, publie le Worker puis applique les migrations D1. Le token de build doit avoir **Workers Scripts Edit** et **D1 Edit** pour ce compte. La base `casamalllivraison-db` est créée ou réutilisée par Wrangler. Un manque de permission D1 doit être corrigé dans le compte Cloudflare ; ne mettez aucun token dans le dépôt.
+Ne jamais mettre les mots de passe ou clés dans GitHub, les logs ou un message public. Les variables doivent être renseignées dans Railway, pas dans le Dockerfile.
 
-`npx wrangler deploy --config wrangler.json` construit et publie également le Worker, mais n’applique pas les migrations. Utilisez le deploy command ci-dessus pour une plateforme initialisée.
+4. Déployer puis Settings → Networking → Generate Domain. Le port est fourni par Railway. Le healthcheck `/api/health` vérifie la base et ses migrations ; il ne valide pas la configuration Atlas ou le mot de passe.
+5. Ouvrir le domaine généré et se connecter avec OWNER_EMAIL et ADMIN_PASSWORD. Dans **Équipe**, créer chaque collaboratrice avec son nom, son email et un mot de passe d’au moins 12 caractères. Elle ne voit que ses commandes et sa commission. Le propriétaire peut changer son mot de passe ou suspendre son compte. Aucun email d’invitation n’est envoyé.
 
-## Activer la plateforme après le premier déploiement
+Les migrations s’appliquent automatiquement au démarrage sur le volume, jamais pendant le build. Activer les sauvegardes de volume dans Railway. Les coûts et limites dépendent de votre offre Railway ; ne choisissez pas d’abonnement payant sans vérifier son prix.
 
-1. Dans l’application Cloudflare Workers, activez **Cloudflare Access** pour le domaine de production et ses previews. Autorisez uniquement votre email et les emails des collaboratrices voulues. Configurez une méthode de connexion (par exemple le code par email).
-2. Dans **Settings → Variables and Secrets**, ajoutez les variables runtime suivantes :
+## Données et sécurité
 
-| Nom | Valeur |
-| --- | --- |
-| `OWNER_EMAIL` | Votre email administrateur exact |
-| `CF_ACCESS_TEAM_DOMAIN` | Domaine de votre équipe Access, comme `votre-equipe.cloudflareaccess.com` |
-| `CF_ACCESS_AUD` | Audience (AUD) de l’application Access protégeant ce Worker |
-| `ATLAS_API_KEY` | Clé Atlas, à enregistrer comme **Secret** |
+Cette nouvelle installation n’importe pas automatiquement les commandes, comptes ou paiements de Sites ou Cloudflare D1. Le stock est récupéré dans Atlas avec la clé configurée. Les anciennes données peuvent être migrées séparément avant la bascule.
 
-Ces variables sont des variables **runtime**, pas uniquement des variables du build. Ne copiez pas la clé Atlas dans GitHub ou les logs.
+Les mots de passe des agents sont salés et hachés avec scrypt ; les sessions opaques sont stockées sous forme de hash, expirent après 12 heures et utilisent un cookie HttpOnly, Secure en production, SameSite=Lax. Les changements d’email, de mot de passe ou d’état révoquent les sessions de l’agent. Chaque requête vérifie encore son compte actif et son périmètre. Les mutations contrôlent l’origine ; la connexion limite les tentatives par email et globalement. Le mot de passe propriétaire se change dans les variables Railway. Pour une révocation immédiate de toutes ses sessions, supprimer celles du propriétaire en base lors d’une intervention administrateur.
 
-3. Si Cloudflare demande un redéploiement après modification des variables, redéployez. Connectez-vous avec l’email de `OWNER_EMAIL`, puis créez les sous-comptes dans Équipe. Autorisez leurs emails dans Access également.
+## Développement
 
-Tant que l’accès sécurisé ou la base ne sont pas configurés, la page montre « Configuration de l’hébergement requise ». Les APIs refusent les utilisateurs non authentifiés. Aucun en-tête utilisateur envoyé librement par un client n’est accepté comme identité : signature RSA, issuer, audience et expiration du JWT Access sont vérifiés côté serveur.
+Node.js 24 requis.
 
-## Base de données
-
-Les six migrations existantes sont appliquées sans modification de leur historique. Le script de migration sélectionne uniquement `casamalllivraison-db`, récupère son véritable identifiant et s’arrête si la sélection est ambiguë. Il ne réinitialise pas les données existantes.
-
-Ce déploiement crée une base indépendante. Il **ne transfère pas les anciennes commandes ou comptes de l’hébergement Sites**. La clé Atlas permet de récupérer le stock de votre compte Atlas ; elle n’importe pas automatiquement l’historique local de l’autre hébergement.
-
-## Vérifications et développement
-
-Node.js 22.13 ou plus et pnpm correspondant à `packageManager` dans `package.json`.
-
-```bash
+```
 pnpm install --frozen-lockfile
 node --experimental-strip-types --test tests/*.test.mjs
 pnpm exec tsc --noEmit
 pnpm run build
-pnpm exec wrangler deploy --config wrangler.json --dry-run
-pnpm run db:migrate:local
 ```
 
-Pour une migration distante déjà provisionnée : `pnpm run db:migrate` (authentification Cloudflare nécessaire). Les identifiants et clés restent hors du dépôt.
+Pour lancer localement, définir OWNER_EMAIL, ADMIN_PASSWORD et SQLITE_PATH sur un fichier local durable, puis `pnpm dev` ou `pnpm start`. Ne pas utiliser une copie de la base de production pour les tests.
+
+La branche main conserve la version Cloudflare. Les corrections WhatsApp et de conservation du prix sont incluses dans cette branche Railway.
