@@ -1,0 +1,7 @@
+type Member={email:string;name:string;orders:number;delivered:number;deliveryRate:number|null;business?:{attributedNet:number|null;costPerLead:number|null;costPerDelivered:number|null;estimatedTransport:number}};
+const finite=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)?v:null;
+const dh=(v:unknown)=>{const n=finite(v);return n===null?null:n/100};
+export function dashboardChartRows(members:Member[]){return members.map(m=>({id:m.email,name:m.name,orders:finite(m.orders),delivered:finite(m.delivered),rate:finite(m.deliveryRate),profit:dh(m.business?.attributedNet),cpl:dh(m.business?.costPerLead),cpd:dh(m.business?.costPerDelivered),estimated:(m.business?.estimatedTransport??0)>0}))}
+export function barDomain(values:(number|null)[],fixedMax?:number){const known=values.filter((v):v is number=>typeof v==='number'&&Number.isFinite(v));const min=Math.min(0,...known),max=fixedMax??Math.max(0,...known);return {min,max:max===min?min+1:max}}
+export function barGeometry(value:number|null,min:number,max:number){if(value===null||!Number.isFinite(value)||!Number.isFinite(min)||!Number.isFinite(max)||max<=min)return null;const zero=100*(0-min)/(max-min),end=100*(value-min)/(max-min);return {left:Math.min(zero,end),width:Math.abs(end-zero),zero}}
+export function circleProgress(part:number|null,whole:number|null){return part===null||whole===null||!Number.isFinite(part)||!Number.isFinite(whole)||whole<=0||part<0||part>whole?null:100*part/whole}

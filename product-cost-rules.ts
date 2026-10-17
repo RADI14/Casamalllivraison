@@ -1,0 +1,2 @@
+import {moroccoDay} from './team-statistics.ts';
+export function missingProductCostOrders(records:any[],product:{id:string;sku:string},from:string,to:string){return records.filter(o=>{if(o.unitCostCents!==null||o.status==='cancelled')return false;const day=moroccoDay(o.createdAt);if((from&&day<from)||(to&&day>to))return false;if(o.productId===product.id)return true;if(o.productId)return false;try{return JSON.parse(o.payload).atlasSku===product.sku}catch{return false}})}

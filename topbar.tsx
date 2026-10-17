@@ -1,0 +1,5 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {Menu,Moon,Sun,Truck} from 'lucide-react';
+import {LanguageSwitcher,useI18n} from './i18n';
+export default function Topbar({connected,onMenu}:{connected:boolean;onMenu:()=>void}){const {t}=useI18n(),[dark,setDark]=useState(false);useEffect(()=>{setDark(localStorage.getItem('commande-theme')==='dark')},[]);useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light'},[dark]);function theme(){setDark(v=>{localStorage.setItem('commande-theme',v?'light':'dark');return !v})}return <header className="atlas-topbar"><button className="mobile-menu" onClick={onMenu} aria-label={t('Open menu')}><Menu size={21}/></button><div className={'atlas-connection '+(connected?'online':'')}><span className="connection-symbol"><Truck size={18}/></span><div><b>Atlas Livraison</b><small><i/>{connected?t('Atlas connecté'):t('Atlas à connecter')}</small></div></div><div className="topbar-controls"><LanguageSwitcher/><button className="theme-button" onClick={theme} aria-label={t('Change theme')} aria-pressed={dark}>{dark?<Sun size={19}/>:<Moon size={19}/>}</button></div></header>}
