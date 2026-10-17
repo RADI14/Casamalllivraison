@@ -1,5 +1,6 @@
 import {translations} from './translations.ts';
 Object.assign(translations,{
+ 'Confirmation WhatsApp AI':{fr:'Confirmation WhatsApp AI',en:'WhatsApp AI confirmation',ar:'تأكيد واتساب AI'},
  'Paste a WhatsApp conversation':{fr:'Coller une conversation WhatsApp',en:'Paste a WhatsApp conversation',ar:'لصق محادثة واتساب'},
  'Paste the conversation here':{fr:'Collez la conversation ici',en:'Paste the conversation here',ar:'ألصق المحادثة هنا'},
  'WhatsApp import help':{fr:'Collez le texte puis vérifiez les informations. Les champs déjà remplis sont conservés. Pour le nom, l’adresse et la ville, utilisez Nom : / Adresse : / Ville :.',en:'Paste the text, then review the details. Existing fields are kept. For name, address and city, use Name: / Address: / City:.',ar:'ألصق النص ثم راجع المعلومات. تُحفظ الحقول المعبأة مسبقاً. استعمل الاسم: / العنوان: / المدينة: لاستخراجها.'},
