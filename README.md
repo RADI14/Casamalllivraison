@@ -1,47 +1,59 @@
-# Commandes · Équipe — code source pour GitHub
+# Casamall Livraison — Cloudflare Workers
 
-## Mettre le projet dans GitHub rapidement
+Plateforme de commandes, stock Atlas, équipe, commissions, coûts et profit. Français, anglais et arabe.
 
-1. Décompressez `commandes-github.zip` sur votre ordinateur.
-2. Sur GitHub : **New repository** → nom `commandes-equipe` → **Private** → **Create repository**.
-3. Cliquez **uploading an existing file** (ou **Add file → Upload files**).
-4. Glissez les fichiers et dossiers décompressés, puis **Commit changes**.
-   GitHub doit afficher `package.json`, `app/`, `db/` et `drizzle/` directement à la racine.
-   Si le navigateur limite le nombre de fichiers, faites plusieurs envois.
+## Correction du déploiement
 
-Le code est maintenant dans votre propre dépôt GitHub. Aucun compte GitHub n’a été connecté et aucun dépôt n’a été créé automatiquement pour vous.
+L’application utilise **Vinext**, pas une construction Next.js/OpenNext. Les fichiers du serveur sont générés dans `dist/server/`, pas dans `.next/`. `wrangler.json` empêche la détection automatique OpenNext. Son étape de construction génère et vérifie le Worker Vinext avant l’envoi.
 
-## Ce qui est inclus
+Dans **Cloudflare → Workers & Pages → casamalllivraison → Settings → Builds** :
 
-- Commandes et stock Atlas, tableau de bord, comptes de l’équipe.
-- Commissions et historique des paiements, coûts produits et publicités.
-- Frais de transport fournis par Atlas, français / anglais / arabe.
-- Schéma de base de données, migrations et tests.
+| Paramètre | Valeur |
+| --- | --- |
+| Branche | `main` |
+| Root directory | `/` |
+| Build command | laisser vide / None |
+| Deploy command | `pnpm run deploy` |
 
-## Hébergement et données
+Le deploy command construit, publie le Worker puis applique les migrations D1. Le token de build doit avoir **Workers Scripts Edit** et **D1 Edit** pour ce compte. La base `casamalllivraison-db` est créée ou réutilisée par Wrangler. Un manque de permission D1 doit être corrigé dans le compte Cloudflare ; ne mettez aucun token dans le dépôt.
 
-Le dépôt contient le **code source complet**, pas les données de production.
-La plateforme actuelle continue de fonctionner à cette adresse :
-https://commandes-mehdi-team.freshpony.chatgpt.site
+`npx wrangler deploy --config wrangler.json` construit et publie également le Worker, mais n’applique pas les migrations. Utilisez le deploy command ci-dessus pour une plateforme initialisée.
 
-**GitHub Pages ne peut pas exécuter cette application complète.** Elle utilise un serveur Cloudflare Workers, une base D1 et l’authentification de l’hébergement actuel. Ce ZIP ne migre pas ces services et ne configure pas de nouvel hébergement.
+## Activer la plateforme après le premier déploiement
 
-Un déploiement indépendant nécessite une configuration Workers/D1 propre, une authentification vérifiée côté serveur et une migration des données. Le module `app/chatgpt-auth.ts` repose actuellement sur les en-têtes authentifiés du service d’hébergement : ne pas faire confiance à ces en-têtes sur un serveur public indépendant.
+1. Dans l’application Cloudflare Workers, activez **Cloudflare Access** pour le domaine de production et ses previews. Autorisez uniquement votre email et les emails des collaboratrices voulues. Configurez une méthode de connexion (par exemple le code par email).
+2. Dans **Settings → Variables and Secrets**, ajoutez les variables runtime suivantes :
 
-## Clés et configuration
+| Nom | Valeur |
+| --- | --- |
+| `OWNER_EMAIL` | Votre email administrateur exact |
+| `CF_ACCESS_TEAM_DOMAIN` | Domaine de votre équipe Access, comme `votre-equipe.cloudflareaccess.com` |
+| `CF_ACCESS_AUD` | Audience (AUD) de l’application Access protégeant ce Worker |
+| `ATLAS_API_KEY` | Clé Atlas, à enregistrer comme **Secret** |
 
-Aucune clé Atlas, aucun jeton Git, aucun fichier `.env`, aucune base clients n’est inclus.
-Les valeurs `ATLAS_API_KEY` et `OWNER_EMAIL` doivent être configurées côté serveur pour tout futur déploiement. Ne mettez pas la clé Atlas dans les fichiers du dépôt.
+Ces variables sont des variables **runtime**, pas uniquement des variables du build. Ne copiez pas la clé Atlas dans GitHub ou les logs.
 
-`.openai/hosting.json` conserve uniquement les noms de bindings génériques, sans identifiant du site existant. Ne l’utilisez pas pour écraser le site actuel.
+3. Si Cloudflare demande un redéploiement après modification des variables, redéployez. Connectez-vous avec l’email de `OWNER_EMAIL`, puis créez les sous-comptes dans Équipe. Autorisez leurs emails dans Access également.
 
-## Tests
+Tant que l’accès sécurisé ou la base ne sont pas configurés, la page montre « Configuration de l’hébergement requise ». Les APIs refusent les utilisateurs non authentifiés. Aucun en-tête utilisateur envoyé librement par un client n’est accepté comme identité : signature RSA, issuer, audience et expiration du JWT Access sont vérifiés côté serveur.
 
-Prérequis : Node.js 22.13 ou plus, pnpm correspondant au champ `packageManager` de `package.json`.
+## Base de données
+
+Les six migrations existantes sont appliquées sans modification de leur historique. Le script de migration sélectionne uniquement `casamalllivraison-db`, récupère son véritable identifiant et s’arrête si la sélection est ambiguë. Il ne réinitialise pas les données existantes.
+
+Ce déploiement crée une base indépendante. Il **ne transfère pas les anciennes commandes ou comptes de l’hébergement Sites**. La clé Atlas permet de récupérer le stock de votre compte Atlas ; elle n’importe pas automatiquement l’historique local de l’autre hébergement.
+
+## Vérifications et développement
+
+Node.js 22.13 ou plus et pnpm correspondant à `packageManager` dans `package.json`.
 
 ```bash
 pnpm install --frozen-lockfile
 node --experimental-strip-types --test tests/*.test.mjs
+pnpm exec tsc --noEmit
+pnpm run build
+pnpm exec wrangler deploy --config wrangler.json --dry-run
+pnpm run db:migrate:local
 ```
 
-La configuration de construction conservée dépend du runtime Sites et doit être adaptée avant un déploiement indépendant. Ce paquet est prêt pour l’import du code dans GitHub ; il n’est pas un déploiement autonome en un clic.
+Pour une migration distante déjà provisionnée : `pnpm run db:migrate` (authentification Cloudflare nécessaire). Les identifiants et clés restent hors du dépôt.

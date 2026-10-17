@@ -1,0 +1,4 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {migrationConfig} from '../scripts/cloudflare-database.mjs';
+test('remote migrations select only the project database and preserve existing build configuration',()=>{const c={name:'casamalllivraison',build:{command:'build'},d1_databases:[{binding:'DB'}]};const r=migrationConfig(c,[{name:'unrelated',uuid:'other'},{name:'casamalllivraison-db',uuid:'correct'}],'/project/drizzle');assert.equal(r.d1_databases[0].database_id,'correct');assert.equal(r.d1_databases[0].migrations_dir,'/project/drizzle');assert.equal(r.name,c.name);assert.equal(c.d1_databases[0].database_id,undefined)});
+test('missing or ambiguous databases stop before any remote migration is executed',()=>{for(const list of [[],[{name:'casamalllivraison-db'}],[{name:'casamalllivraison-db',uuid:'one'},{name:'casamalllivraison-db',uuid:'two'}]])assert.throws(()=>migrationConfig({},list,'/drizzle'))});

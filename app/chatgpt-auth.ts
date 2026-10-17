@@ -1,90 +1,12 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-
-export type ChatGPTUser = {
-  userId: string;
-  displayName: string;
-  email: string;
-  fullName: string | null;
-};
-
-const USER_ID_HEADER = "oai-authenticated-user-id";
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
-const USER_FULL_NAME_HEADER = "oai-authenticated-user-full-name";
-const USER_FULL_NAME_ENCODING_HEADER =
-  "oai-authenticated-user-full-name-encoding";
-const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
-const SIGN_IN_PATH = "/signin-with-chatgpt";
-const SIGN_OUT_PATH = "/signout-with-chatgpt";
-const CALLBACK_PATH = "/callback";
-
-export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get(USER_ID_HEADER);
-  const email = requestHeaders.get(USER_EMAIL_HEADER);
-  if (!userId || !email) return null;
-
-  const encodedFullName = requestHeaders.get(USER_FULL_NAME_HEADER);
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get(USER_FULL_NAME_ENCODING_HEADER) === PERCENT_ENCODED_UTF8
-      ? safeDecodeURIComponent(encodedFullName)
-      : null;
-
-  return {
-    userId,
-    displayName: fullName ?? email,
-    email,
-    fullName,
-  };
-}
-
-export async function requireChatGPTUser(
-  returnTo: string,
-): Promise<ChatGPTUser> {
-  const user = await getChatGPTUser();
-  if (user) return user;
-
-  redirect(chatGPTSignInPath(returnTo));
-}
-
-export function chatGPTSignInPath(returnTo: string): string {
-  const safeReturnTo = safeRelativeReturnPath(returnTo);
-  return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
-}
-
-export function chatGPTSignOutPath(returnTo = "/"): string {
-  const safeReturnTo = safeRelativeReturnPath(returnTo);
-  return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
-}
-
-function safeRelativeReturnPath(value: string): string {
-  if (!value.startsWith("/") || value.startsWith("//")) return "/";
-
-  let url: URL;
-  try {
-    url = new URL(value, "https://app.local");
-  } catch {
-    return "/";
-  }
-  if (url.origin !== "https://app.local") return "/";
-  if (isReservedAuthPath(url.pathname)) return "/";
-
-  return `${url.pathname}${url.search}${url.hash}`;
-}
-
-function isReservedAuthPath(pathname: string): boolean {
-  return (
-    pathname === SIGN_IN_PATH ||
-    pathname === SIGN_OUT_PATH ||
-    pathname === CALLBACK_PATH
-  );
-}
-
-function safeDecodeURIComponent(value: string): string | null {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
-}
+import {headers} from 'next/headers';
+import {redirect} from 'next/navigation';
+import {env} from 'cloudflare:workers';
+import {accessIdentity,accessIssuer} from './cloudflare-access';
+export type ChatGPTUser={userId:string;displayName:string;email:string;fullName:string|null};
+const settings=()=>env as unknown as Record<string,string>;
+export function cloudflareAuthReady(){const s=settings();return !!accessIssuer(s.CF_ACCESS_TEAM_DOMAIN)&&!!s.CF_ACCESS_AUD?.trim()&&!!s.OWNER_EMAIL?.trim()}
+// Legacy export names preserve the application interface; only verified Access JWTs are trusted.
+export async function getChatGPTUser():Promise<ChatGPTUser|null>{if(!cloudflareAuthReady())return null;const h=await headers(),s=settings();return accessIdentity(h.get('cf-access-jwt-assertion'),s.CF_ACCESS_TEAM_DOMAIN,s.CF_ACCESS_AUD)}
+export async function requireChatGPTUser(returnTo:string):Promise<ChatGPTUser>{const u=await getChatGPTUser();if(u)return u;redirect(chatGPTSignInPath(returnTo))}
+export function chatGPTSignInPath(returnTo:string){const safe=returnTo.startsWith('/')&&!returnTo.startsWith('//')?returnTo:'/';return '/cdn-cgi/access/login?redirect_url='+encodeURIComponent(safe)}
+export function chatGPTSignOutPath(){return '/cdn-cgi/access/logout'}

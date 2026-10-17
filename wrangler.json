@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "casamalllivraison",
+  "main": "dist/server/index.js",
+  "base_dir": "dist/server",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "no_bundle": true,
+  "find_additional_modules": true,
+  "rules": [{"type":"ESModule","globs":["**/*.js","**/*.mjs"]}],
+  "build": {"command":"node scripts/build-cloudflare.mjs"},
+  "assets": {"directory":"dist/client"},
+  "d1_databases": [{"binding":"DB","database_name":"casamalllivraison-db","migrations_dir":"drizzle"}],
+  "keep_vars": true
+}

@@ -1,6 +1,7 @@
 'use client';
 import {createContext,useContext,useEffect,useState} from 'react';
 import {translations} from './translations';
+import './cloudflare-translations';
 export type Language='fr'|'en'|'ar';
 const locales={fr:'fr-MA',en:'en-GB',ar:'ar-MA'};
 export function translate(text:string,language:Language){const entry=translations[text];return entry?.[language]??text}

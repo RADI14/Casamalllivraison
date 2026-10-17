@@ -1,0 +1,10 @@
+import {spawnSync} from 'node:child_process';
+import {rmSync,existsSync,readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+rmSync(new URL('../dist',import.meta.url),{recursive:true,force:true});
+const r=spawnSync(process.execPath,[fileURLToPath(new URL('../node_modules/vite/bin/vite.js',import.meta.url)),'build'],{cwd:root,stdio:'inherit',env:{...process.env,CLOUDFLARE_CF_FETCH_ENABLED:'false',WRANGLER_SEND_METRICS:'false'}});
+if(r.error)throw r.error;if(r.status!==0)process.exit(r.status??1);
+for(const f of ['dist/server/index.js','dist/server/wrangler.json','dist/client'])if(!existsSync(new URL('../'+f,import.meta.url)))throw Error('Missing Vinext build output: '+f);
+const config=JSON.parse(readFileSync(new URL('../dist/server/wrangler.json',import.meta.url),'utf8'));
+if(config.name!=='casamalllivraison')throw Error('Worker name does not match Cloudflare project.');
