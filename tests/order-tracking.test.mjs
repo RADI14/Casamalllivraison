@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {filterTrackingOrders,trackingGroup} from '../app/order-tracking-rules.ts';
+const labels={draft:'Brouillon',sent:'Transmise',cancelled:'Annulée'},f={tab:'all',state:'all',city:'all',product:'',query:'',from:'',to:'',updated:''};
+const make=(id,extra={})=>({id,status:'sent',tracking:id,atlasState:5,atlasStateName:'Reporté',createdAt:'2026-10-17T09:00:00Z',syncedAt:'2026-10-17T10:00:00Z',payload:{fullname:'Client',phone:'0612345678',address:'10 rue test',cityName:'Kenitra',product:'Mixeur'},...extra});
+test('tracking filters combine carrier state, city, product, search and inclusive Morocco dates',()=>{const rows=[make('1'),make('2',{atlasStateName:'Livré',atlasState:17}),make('3',{createdAt:'2026-10-16T20:00:00Z'})];assert.deepEqual(filterTrackingOrders(rows,{...f,state:'Reporté',city:'Kenitra',product:'mix',query:'0612',from:'2026-10-17',to:'2026-10-17'},labels).map(r=>r.id),['1']);assert.equal(filterTrackingOrders(rows,{...f,query:'absent'},labels).length,0)});
+test('update date filter excludes unsynced and older records independently of creation date',()=>{const rows=[make('1'),make('2',{syncedAt:null}),make('3',{syncedAt:'2026-10-15T10:00:00Z'})];assert.deepEqual(filterTrackingOrders(rows,{...f,updated:'1'},labels,new Date('2026-10-17T12:00:00Z')).map(r=>r.id),['1'])});
+test('new and in-progress tabs exclude delivered and local cancellations without inventing carrier state IDs',()=>{assert.equal(trackingGroup(make('1',{tracking:null,status:'draft'})),'new');assert.equal(trackingGroup(make('2')),'processing');assert.equal(trackingGroup(make('3',{atlasState:17})),'closed');assert.equal(trackingGroup(make('4',{status:'cancelled'})),'closed')});

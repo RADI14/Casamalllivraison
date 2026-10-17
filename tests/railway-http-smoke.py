@@ -39,6 +39,10 @@ with tempfile.TemporaryDirectory() as temp:
   for email,cookie in agents.items():
    status,_,data=req('/api/orders',cookie=cookie);rows=json.loads(data)['orders'];assert len(rows)==1 and rows[0]['createdEmail']==email and rows[0]['payload']['price']==199
   assert len(json.loads(req('/api/orders',cookie=owner)[2])['orders'])==2
+  allrows=json.loads(req('/api/orders',cookie=owner)[2])['orders'];other=next(r for r in allrows if r['createdEmail']=='b@test.com')['id']
+  scoped=json.loads(req('/api/orders?createdEmail=b@test.com',cookie=agents['a@test.com'])[2])['orders'];assert all(r['createdEmail']=='a@test.com' for r in scoped)
+  assert req('/api/orders',{'action':'cancel','id':other},cookie=agents['a@test.com'])[0]==409
+  assert req('/api/orders',{'action':'send','id':other},cookie=agents['a@test.com'])[0] in [404,409]
   team=json.loads(req('/api/team',cookie=owner)[2])['members'];member=next(x for x in team if x['email']=='a@test.com')
   newpass=secrets.token_urlsafe(24)
   update={'action':'update','oldEmail':member['email'],'email':'new@test.com','name':'Renamed','active':True,'originalName':member['name'],'originalActive':member['active'],'createdAt':member['createdAt'],'password':newpass}
