@@ -12,4 +12,13 @@ Object.assign(translations,{
  'Chaque collaboratrice utilise son propre compte ChatGPT avec l’adresse email autorisée. Elle ne voit que ses commandes et ses commissions.':{fr:'Chaque collaboratrice se connecte avec son email et son mot de passe. Elle ne voit que ses commandes et ses commissions.',en:'Each agent signs in with her email and password and sees only her orders and commissions.',ar:'كل بنت كتدخل بالإيميل وكلمة السر ديالها وكتشوف غير طلباتها وعمولتها.'},
  'Après création, autorisez aussi cette adresse dans le partage privé du site avec le rôle visiteur. La création du sous-compte ici n’envoie aucune invitation et ne donne pas accès au site à elle seule.':{fr:'Communiquez les identifiants à la collaboratrice par votre canal habituel. Aucun email n’est envoyé automatiquement.',en:'Share the login details with your agent through your usual channel. No email is sent automatically.',ar:'عطي معلومات الدخول للبنت بالطريقة اللي كتستعملو. ما كيتسيفط حتى إيميل أوتوماتيكياً.'},
  'Changing the login email also requires updating private site sharing. This form does not change site sharing or send invitations.':{fr:'L’ancien email ne permettra plus de se connecter. Les sessions ouvertes sont fermées.',en:'The old email will no longer work. Existing sessions are signed out.',ar:'الإيميل القديم ما غيبقاش يخدم والجلسات المفتوحة كتسد.'},
+"Connect to your workspace":{"fr": "Connectez-vous à votre compte", "en": "Connect to your workspace", "ar": "دخل للحساب ديالك"},
+"Login password":{"fr": "Mot de passe", "en": "Login password", "ar": "كلمة السر"},
+"Show password":{"fr": "Afficher le mot de passe", "en": "Show password", "ar": "إظهار كلمة السر"},
+"Hide password":{"fr": "Masquer le mot de passe", "en": "Hide password", "ar": "إخفاء كلمة السر"},
+"Signing in…":{"fr": "Connexion…", "en": "Signing in…", "ar": "جاري الدخول…"},
+"Need access help?":{"fr": "Besoin d’aide pour vous connecter ?", "en": "Need access help?", "ar": "محتاج مساعدة باش تدخل؟"},
+"Ask your administrator to create your account or reset your password. Existing accounts keep the same credentials.":{"fr": "Contactez votre administrateur pour créer votre compte ou réinitialiser votre mot de passe. Vos identifiants actuels restent valables.", "en": "Ask your administrator to create your account or reset your password. Existing accounts keep the same credentials.", "ar": "تواصل مع الأدمن باش ينشئ ليك حساب أو يبدل كلمة السر. معلومات الدخول الحالية باقية خدامة."},
+"Secure team workspace":{"fr": "Espace équipe sécurisé", "en": "Secure team workspace", "ar": "فضاء آمن للفريق"},
+"Your deliveries, under control.":{"fr": "Vos livraisons, sous contrôle.", "en": "Your deliveries, under control.", "ar": "طلباتك وتوصيلاتك تحت السيطرة."},
 });
