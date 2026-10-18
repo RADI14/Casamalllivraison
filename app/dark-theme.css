@@ -1,0 +1,96 @@
+/* Shared dark palette. Scoped to the workspace; the branded login keeps its own palette. */
+[data-theme=dark]{
+ --ink:#f1f5f9;--muted:#b4c0d3;--line:#34445e;--surface:#162237;--canvas:#0b1424;
+ --dark-panel:#202f47;--dark-hover:#293c59;--dark-link:#93c5fd;
+ --dark-success:#86efac;--dark-success-bg:#123b30;
+ --dark-warning:#fde68a;--dark-warning-bg:#42351a;
+ --dark-danger:#fda4af;--dark-danger-bg:#471f31;
+ --dark-purple:#d8b4fe;--dark-purple-bg:#34244c;--green:#86efac;
+ color-scheme:dark;
+}
+[data-theme=dark] .shell{color:var(--ink);background:var(--canvas)}
+[data-theme=dark] .shell :is(h1,h2,h3,h4,legend,td){color:var(--ink)}
+[data-theme=dark] .shell :is(p,small,ol,ul,.eyebrow,.nav-label,.period-bar label,.tracking-date,.tracking-updated,.tracking-scope-note,.bulk-note,.bottom-note,.table-footer,.agent-account-state,.agent-performance-method,.chart-axis,.recovery-admin-row small,.order-commission small){color:var(--muted)}
+[data-theme=dark] .shell :is(label,.atlas-form-grid label,.atlas-form-grid label>span,.parcel-options label,.stock-search>label,.ad-pair-filters label){color:var(--ink)}
+[data-theme=dark] .shell :is(.orders-card,.settings-card,.profit-overview,.agent-performance-card,.agent-performance-empty,.atlas-stock-card,.tracking-orders,.wa-workspace,.wa-thread,.modal,.finance-kpi){background:var(--surface);border-color:var(--line);color:var(--ink)}
+[data-theme=dark] .shell :is(input,select,textarea){background:var(--surface);color:var(--ink);border-color:var(--line);caret-color:var(--ink)}
+[data-theme=dark] .shell :is(input,textarea)::placeholder{color:var(--muted);opacity:1}
+[data-theme=dark] .shell :is(input,select,textarea):disabled{background:var(--dark-panel);color:var(--muted)}
+[data-theme=dark] .shell option{background:var(--surface);color:var(--ink)}
+[data-theme=dark] .shell input[type=checkbox]{accent-color:#60a5fa}
+[data-theme=dark] .shell :is(input,textarea):-webkit-autofill{-webkit-text-fill-color:var(--ink);-webkit-box-shadow:0 0 0 1000px var(--surface) inset}
+[data-theme=dark] .main button{background:var(--dark-panel);color:var(--ink);border-color:var(--line)}
+[data-theme=dark] .main button:hover{background:var(--dark-hover)}
+[data-theme=dark] .main :is(.primary,.table-wrap td .primary){background:#1d4ed8;color:#fff;border-color:#3b82f6}
+[data-theme=dark] .main .primary:hover{background:#1e40af}
+[data-theme=dark] .shell :is(.theme-button,.mobile-menu,.performance-table td:last-child button,.agent-carousel-controls button){color:var(--muted)}
+[data-theme=dark] .shell :is(.page-heading,.period-bar,.filters,.table-footer,.modal-head,.modal-actions,.tracking-tabs){background:var(--surface);border-color:var(--line)}
+[data-theme=dark] .shell :is(th,thead,.tracking-orders .desktop-order-table thead,.agent-economics th:first-child){background:var(--dark-panel);color:var(--muted)}
+[data-theme=dark] .shell :is(td,.tracking-orders .desktop-order-table td,.commission-order-list,.commission-order-list>div,.recovery-admin-row){border-color:var(--line)}
+[data-theme=dark] .shell :is(.tracking-orders .desktop-order-table tbody tr,.product-cost-table tr){background:var(--surface)}
+[data-theme=dark] .shell :is(tbody tr:hover,.tracking-orders .desktop-order-table tbody tr:hover,.wa-thread:hover){background:var(--dark-hover)}
+[data-theme=dark] .shell :is(tbody tr[data-selected=true],.mobile-order-card[data-selected=true],.wa-thread.selected){background:#233c5d;border-color:#60a5fa}
+[data-theme=dark] .shell :is(.table-wrap td small,.mobile-order-date){color:var(--muted)}
+[data-theme=dark] .shell :is(.order-code,.phone-link,.tracking-orders .order-code,.tracking-orders .phone-link,.doc-link,.comparison-name:hover,.circle-agent:hover){color:var(--dark-link)}
+[data-theme=dark] .shell :is(.order-product,.stock-pill.low,.wa-connection-note){background:var(--dark-warning-bg);color:var(--dark-warning);border-color:#7a642e}
+[data-theme=dark] .shell .order-product small{color:inherit}
+[data-theme=dark] .shell :is(.subtle,.bulk-tools,.send-choice,.atlas-order-form .send-choice,.setup-banner,.whatsapp-paste-panel){background:var(--dark-panel);border-color:var(--line);color:var(--muted)}
+[data-theme=dark] .shell :is(.subtle b,.setup-banner b,.bulk-tools strong,.dashboard-toolbar>div:first-child){color:var(--ink)}
+[data-theme=dark] .shell :is(.bulk-tools button:disabled,.dashboard-count,.card-top h2 span,.agent-performance-heading>div>span,.tracking-tabs button span,.rate-track,.finance-cost-track,.stock-view-switch,.parcel-mode){background:var(--dark-panel);color:var(--muted);border-color:var(--line)}
+[data-theme=dark] .shell :is(.tabs button,.tracking-tabs button,.stock-view-switch button,.parcel-mode button){color:var(--muted)}
+[data-theme=dark] .shell :is(.tabs button.selected,.tracking-tabs button.selected,.stock-view-switch button.selected,.parcel-mode button.selected,.finance-tabs button.selected){background:#24426a;color:#bfdbfe;border-color:#456594}
+[data-theme=dark] .shell :is(.tabs button.selected span,.tracking-tabs button.selected span){background:#173052;color:#bfdbfe}
+[data-theme=dark] .shell :is(.agent-rate,.agent-performance-metric,.finance-fixed-variable>div,.wa-order-summary,.wa-chat-empty,.wa-messages){background:var(--dark-panel);border-color:var(--line)}
+[data-theme=dark] .shell :is(.agent-rate strong,.agent-performance-metric strong,.finance-kpi strong,.finance-cost-total strong,.finance-category b,.finance-fixed-variable b){color:var(--ink)}
+[data-theme=dark] .shell :is(.agent-rate small,.agent-rate span,.agent-performance-metric small,.finance-kpi small,.finance-kpi span,.finance-cost-total small,.finance-fixed-variable small){color:var(--muted)}
+[data-theme=dark] .shell .agent-performance-name{color:var(--ink)!important}
+[data-theme=dark] .shell .agent-performance-metric.loss strong{color:var(--dark-danger)}
+[data-theme=dark] .shell .finance-category{border-color:var(--line)}
+[data-theme=dark] .shell .finance-kpi.net-kpi{background:var(--dark-success-bg);border-color:#27634c;color:var(--dark-success)}
+[data-theme=dark] .shell .finance-kpi.net-kpi strong{color:var(--dark-success)}
+[data-theme=dark] .shell .finance-kpi.net-kpi :is(small,span){color:#bbf7d0}
+[data-theme=dark] .shell .finance-kpi.net-kpi.negative{background:var(--dark-danger-bg);border-color:#804056}
+[data-theme=dark] .shell .finance-kpi.net-kpi.negative :is(strong,small,span){color:var(--dark-danger)}
+[data-theme=dark] .shell :is(.ad-pair-report .card-top>strong,.commission-order-total,.delivered-value,.atlas-stock-card-bottom strong){color:var(--dark-success)}
+[data-theme=dark] .shell .ad-pair-report small{color:var(--dark-warning)}
+[data-theme=dark] .shell .stat{border-color:var(--line)}
+[data-theme=dark] .shell .stat :is(.stat-top,strong,small){color:inherit}
+[data-theme=dark] .shell .stat .stat-top svg{color:inherit;background:#ffffff0d}
+[data-theme=dark] .shell .stat-0{background:var(--dark-panel);color:#dbeafe}
+[data-theme=dark] .shell :is(.stat-1,.dashboard-stats .stat-3){background:var(--dark-success-bg);color:var(--dark-success)}
+[data-theme=dark] .shell .stat-2{background:#1b355a;color:#bfdbfe}
+[data-theme=dark] .shell .stat-3{background:var(--dark-warning-bg);color:var(--dark-warning)}
+[data-theme=dark] .shell .stat-4{background:var(--dark-danger-bg);color:var(--dark-danger)}
+[data-theme=dark] .shell .dashboard-stats .stat-5{background:var(--dark-purple-bg);color:var(--dark-purple)}
+[data-theme=dark] .shell :is(.status,.wa-badge){background:var(--dark-panel);color:var(--muted)}
+[data-theme=dark] .shell :is(.status.sent,.status.sending){background:#1b355a;color:#bfdbfe}
+[data-theme=dark] .shell :is(.status.delivered,.wa-badge.confirmed,.stock-pill){background:var(--dark-success-bg);color:var(--dark-success)}
+[data-theme=dark] .shell :is(.status.error,.wa-badge.review){background:var(--dark-warning-bg);color:var(--dark-warning)}
+[data-theme=dark] .shell :is(.status.cancelled,.wa-badge.cancelled){background:var(--dark-danger-bg);color:var(--dark-danger)}
+[data-theme=dark] .shell .status.draft{background:var(--dark-purple-bg);color:var(--dark-purple)}
+[data-theme=dark] .shell :is(.alert.danger,.danger){background:var(--dark-danger-bg);color:var(--dark-danger);border-color:#804056}
+[data-theme=dark] .shell :is(.alert.success,.success){background:var(--dark-success-bg);color:var(--dark-success);border-color:#27634c}
+[data-theme=dark] .shell .alert :is(p,small,b,strong){color:inherit}
+[data-theme=dark] .shell :is(.red,.bulk-tools .red){color:var(--dark-danger)}
+[data-theme=dark] .shell .order-commission button{background:var(--dark-success-bg)!important;color:var(--dark-success)!important;border-color:#27634c!important}
+[data-theme=dark] .shell :is(.avatar,.integration-logo,.empty-icon,.banner-icon,.step>span,.connection-symbol){background:#233c5d;color:var(--dark-link)}
+[data-theme=dark] .shell :is(.atlas-connection small,.suspended-label){color:var(--dark-warning)}
+[data-theme=dark] .shell .atlas-connection.online :is(small,.connection-symbol){color:var(--dark-success)}
+[data-theme=dark] .shell .atlas-connection.online .connection-symbol{background:var(--dark-success-bg)}
+[data-theme=dark] .shell .commission-banner{background:linear-gradient(110deg,#1e40af,#172f6c);color:#fff}
+[data-theme=dark] .shell .commission-banner :is(strong,.eyebrow,p){color:#fff}
+[data-theme=dark] .shell .commission-banner .primary{background:#dbeafe;color:#172f6c;border-color:#dbeafe}
+[data-theme=dark] .shell :is(.stock-search-results,.city-options){background:var(--surface);border-color:var(--line)}
+[data-theme=dark] .shell :is(.stock-search-results button,.city-options button){background:var(--surface);color:var(--ink);border-color:var(--line)}
+[data-theme=dark] .shell :is(.stock-search-results button[data-active=true],.city-options button[aria-selected=true]){background:var(--dark-hover)}
+[data-theme=dark] .shell :is(.wa-thread small,.wa-chat-head small,.wa-empty,.wa-bubble small){color:var(--muted)}
+[data-theme=dark] .shell .wa-bubble{background:var(--surface);color:var(--ink);border-color:var(--line)}
+[data-theme=dark] .shell .wa-bubble.out{background:var(--dark-success-bg);border-color:#27634c}
+[data-theme=dark] .shell .wa-bubble.draft{background:var(--dark-purple-bg);border-color:#765297}
+[data-theme=dark] .shell .wa-bubble p{color:var(--ink)}
+[data-theme=dark] .shell :is(.wa-inbox,.wa-chat-head,.wa-composer){border-color:var(--line)}
+[data-theme=dark] .shell :is(.wa-actions button,.wa-chat-head button,.wa-connection button){background:var(--dark-panel);color:var(--ink);border-color:var(--line)}
+[data-theme=dark] .shell :is(.wa-actions button.primary,.whatsapp-paste){background:var(--dark-success-bg);color:var(--dark-success)}
+[data-theme=dark] .shell .wa-actions a{color:var(--dark-success)}
+[data-theme=dark] .shell .wa-hero :is(h2,p,.wa-kicker,.wa-mode){color:#ecfdf5}
+[data-theme=dark] .shell :is(button,a,input,textarea,select):focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
