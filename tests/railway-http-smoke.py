@@ -56,10 +56,24 @@ with tempfile.TemporaryDirectory() as temp:
   dashboard=json.loads(req('/api/dashboard',cookie=owner)[2]);assert dashboard['members']
   assert req('/api/expenses',{'action':'delete','id':rows[0]['id']},cookie=owner)[0]==200
   assert json.loads(req('/api/finance',cookie=owner)[2])['total']['overheads']==0
+  recovery='/api/auth/recovery'
+  assert req(recovery,{'email':'a@test.com'},origin=False)[0]==403
+  assert req(recovery,{'email':'bad'})[0]==400
+  for email in ['a@test.com','unknown@test.com','owner@test.com']:
+   status,_,body=req(recovery,{'email':email});assert status==200 and json.loads(body)=={'ok':True}
+   assert 'password' not in body and 'token' not in body
+  for _ in range(5):assert req(recovery,{'email':'a@test.com'})[0]==200
+  requestdb=sqlite3.connect(dbfile)
+  assert requestdb.execute('SELECT COUNT(*) FROM app_password_recovery').fetchone()[0]==1
+  assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==200
+  assert req('/api/team',cookie=agents['a@test.com'])[0]==403
+  recoveryteam=json.loads(req('/api/team',cookie=owner)[2])['members'];assert next(m for m in recoveryteam if m['email']=='a@test.com')['recoveryRequestedAt']
   team=json.loads(req('/api/team',cookie=owner)[2])['members'];member=next(x for x in team if x['email']=='a@test.com')
   newpass=secrets.token_urlsafe(24)
   update={'action':'update','oldEmail':member['email'],'email':'new@test.com','name':'Renamed','active':True,'originalName':member['name'],'originalActive':member['active'],'createdAt':member['createdAt'],'password':newpass}
   assert req('/api/team',update,cookie=owner)[0]==200
+  assert requestdb.execute('SELECT COUNT(*) FROM app_password_recovery').fetchone()[0]==0
+  requestdb.close()
   assert req('/api/orders',cookie=agents['a@test.com'])[0]==403
   assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==401
   status,h,_=req('/api/auth/login',{'email':'new@test.com','password':newpass});assert status==200;newcookie=h['Set-Cookie'].split(';')[0]
@@ -73,5 +87,5 @@ with tempfile.TemporaryDirectory() as temp:
   assert status==429
   db=sqlite3.connect(dbfile);assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==2
   assert all(not x[0].startswith(agentpass) for x in db.execute('SELECT password_hash FROM app_credentials'))
-  print('PASS: production HTTP login, origin rejection, forged headers, agent isolation, preserved COD amount, account rename/password reset, session revocation, suspension, logout, rate limiting and SQLite persistence.')
+  print('PASS: production HTTP login, origin rejection, forged headers, agent isolation, preserved COD amount, account rename/password reset, session revocation, suspension, logout, rate limiting SQLite persistence and admin-reviewed password recovery.')
  finally:p.terminate();p.wait(timeout=15);log.close()
