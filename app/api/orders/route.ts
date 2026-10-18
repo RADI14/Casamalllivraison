@@ -1,3 +1,5 @@
+import {loadCommissionLedger} from '../../../server/order-commission-payments';
+import {getSqlite} from '../../../server/sqlite';
 import {sameOrigin} from '../../../server/request-origin';
 import {env} from '../../../server/runtime';
 import {getActor,orderScope} from '../../access';
@@ -9,8 +11,8 @@ import {atlasRead,normalizeStocks,stockSelection} from '../../atlas-stock';
 import {atlasParcelPayload,atlasError} from '../../atlas-request';
 import {cancelAtlasParcel} from '../../atlas-cancel';
 import {desc,eq,and,inArray} from 'drizzle-orm';
-const out=(data:any,status=200)=>Response.json(data,{status});
-export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));return out({orders:rows.map(r=>{const {unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),commission:commission(r),payload:JSON.parse(r.payload)}}),role:actor.role});}
+const out=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
+export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);return out({orders:rows.map(r=>{const {unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),commission:commission(r),...ledger.states.get(r.id),payload:JSON.parse(r.payload)}}),role:actor.role});}
 export async function POST(req:Request){
  const user=await getActor();if(!user)return out({error:'Accès non autorisé'},403);
  if(!sameOrigin(req))return out({error:'Origine refusée'},403);
