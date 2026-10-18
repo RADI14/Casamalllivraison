@@ -1,9 +1,10 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {startStockRefresh} from './stock-refresh';
 import {useI18n} from './i18n';
 export default function ProductCosts({catalog,from,to,onSaved}:{catalog:any[];from:string;to:string;onSaved:()=>Promise<void>}){
  const {t,money}=useI18n();const [stocks,setStocks]=useState<any[]>([]),[query,setQuery]=useState(''),[values,setValues]=useState<Record<string,{cost:string}>>({}),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[preview,setPreview]=useState<any>(null),[atlasError,setAtlasError]=useState('');
- useEffect(()=>{let current=true;fetch('/api/atlas',{cache:'no-store'}).then(r=>r.json() as Promise<any>).then(j=>{if(current){if(j.stockReady)setStocks(j.stocks??[]);else setAtlasError('Atlas catalogue unavailable. Saved product costs are still shown.')}}).catch(()=>{if(current)setAtlasError('Atlas catalogue unavailable. Saved product costs are still shown.')});return()=>{current=false}},[]);
+ useEffect(()=>{let current=true;const stop=startStockRefresh(async()=>{try{const r=await fetch('/api/atlas?stocksOnly=1',{cache:'no-store'}),j:any=await r.json();if(!r.ok||!j.stockReady)throw Error('Stock unavailable');if(current){setStocks(j.stocks??[]);setAtlasError('')}}catch{if(current)setAtlasError('Atlas catalogue unavailable. Saved product costs are still shown.')}});return()=>{current=false;stop()}},[]);
  useEffect(()=>{setPreview(null)},[from,to]);
  const map=new Map(catalog.map(p=>[p.sku,{name:p.name,sku:p.sku,local:p}]));for(const s of stocks)if(s.sku&&!map.has(s.sku))map.set(s.sku,{name:s.name,sku:s.sku,local:null});const rows=[...map.values()].filter(p=>(p.name+' '+p.sku).toLowerCase().includes(query.trim().toLowerCase()));
  const value=(p:any)=>values[p.sku]??{cost:p.local?String(p.local.costCents/100):''};
