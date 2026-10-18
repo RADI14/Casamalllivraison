@@ -43,6 +43,19 @@ with tempfile.TemporaryDirectory() as temp:
   scoped=json.loads(req('/api/orders?createdEmail=b@test.com',cookie=agents['a@test.com'])[2])['orders'];assert all(r['createdEmail']=='a@test.com' for r in scoped)
   assert req('/api/orders',{'action':'cancel','id':other},cookie=agents['a@test.com'])[0]==409
   assert req('/api/orders',{'action':'send','id':other},cookie=agents['a@test.com'])[0] in [404,409]
+  expense={'date':'2026-10-18','amount':'199.50','category':'chatgpt','costType':'fixed','channel':'ChatGPT','note':'Subscription','productId':'','memberEmail':''}
+  for path in ['/api/expenses','/api/finance']:
+   assert req(path,cookie=agents['a@test.com'])[0]==403
+  assert req('/api/expenses',expense,cookie=agents['a@test.com'])[0]==403
+  assert req('/api/expenses',expense,cookie=owner,origin=False)[0]==403
+  assert req('/api/expenses',{**expense,'category':'invalid'},cookie=owner)[0]==400
+  assert req('/api/expenses',None,cookie=owner)[0]==200
+  assert req('/api/expenses',expense,cookie=owner)[0]==201
+  rows=json.loads(req('/api/expenses',cookie=owner)[2])['expenses'];assert len(rows)==1 and rows[0]['category']=='chatgpt' and rows[0]['costType']=='fixed' and rows[0]['amountCents']==19950
+  report=json.loads(req('/api/finance?from=2026-10-18&to=2026-10-18',cookie=owner)[2]);assert report['total']['overheads']==19950 and report['total']['net']==-19950 and report['total']['ads']==0
+  dashboard=json.loads(req('/api/dashboard',cookie=owner)[2]);assert dashboard['members']
+  assert req('/api/expenses',{'action':'delete','id':rows[0]['id']},cookie=owner)[0]==200
+  assert json.loads(req('/api/finance',cookie=owner)[2])['total']['overheads']==0
   team=json.loads(req('/api/team',cookie=owner)[2])['members'];member=next(x for x in team if x['email']=='a@test.com')
   newpass=secrets.token_urlsafe(24)
   update={'action':'update','oldEmail':member['email'],'email':'new@test.com','name':'Renamed','active':True,'originalName':member['name'],'originalActive':member['active'],'createdAt':member['createdAt'],'password':newpass}
