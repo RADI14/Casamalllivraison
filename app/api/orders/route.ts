@@ -22,17 +22,19 @@ export async function POST(req:Request){
  const raw=b.payload??{};const p:any=Object.fromEntries(['fullname','phone','address','cityName','cityId','storeId','product','quantity','price','note','openpackage','phone2','change','allowtry'].map(k=>[k,raw[k]]));p.openpackage=raw.openpackage===true;p.change=raw.change===true;p.allowtry=raw.allowtry===true;p.phone2=typeof raw.phone2==='string'?raw.phone2.replace(/\s/g,'').replace(/^\+212/,'0'):'';if(p.phone2&&!/^0[67]\d{8}$/.test(p.phone2))return out({error:'Invalid second phone number.'},400);for(const k of ['fullname','phone','address','cityName','product','note','cityId','storeId'])if(typeof p[k]!=='string'||p[k].length>1000)return out({error:'Champs invalides'},400);
  p.phone=p.phone.replace(/\s/g,'').replace(/^\+212/,'0');
  if(!p.fullname.trim()||!/^0[67]\d{8}$/.test(p.phone)||p.address.replace(/\s/g,'').length<10||!p.cityName||!p.product.trim()||!Number.isInteger(p.price)||p.price<=0||p.price>1000000||!Number.isInteger(p.quantity)||p.quantity<1||p.quantity>1000)return out({error:'Vérifiez le nom, le téléphone 06/07, l’adresse (10 caractères hors espaces), le produit, la quantité et le montant entier en DH.'},400);
- const id=crypto.randomUUID(),now=new Date().toISOString();
- if(raw.fulfillmentMode==='normal'){
- await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,stockReleased:1});return out({id},201);
- }
+ const id=b.requestId??crypto.randomUUID(),now=new Date().toISOString();
+ if(typeof id!=='string'||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i).test(id))return out({error:'Invalid request identifier.'},400);
+ const [existing]=await db.select().from(orders).where(eq(orders.id,id));
+ if(existing){if(existing.createdEmail!==user.email)return out({error:'Commande introuvable'},404);const saved=JSON.parse(existing.payload);if(['fullname','phone','phone2','address','cityId','storeId','quantity','price','note','openpackage','change','allowtry'].some(k=>saved[k]!==p[k])||saved.stockItems?.[0]?.stockId!==raw.atlasStockId)return out({error:'This order was already saved. Open its details before making changes.'},409);const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?200:202)}
+ if(!p.cityId.trim())return out({error:'Select an Atlas city before saving.'},400);
  if(raw.fulfillmentMode!==undefined&&raw.fulfillmentMode!=='stock')return out({error:'Invalid parcel type.'},400);
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'Connect Atlas to load your stock.'},409);
  try{
  const stock=stockSelection(normalizeStocks(await atlasRead(key,'/stocks')),raw.atlasStockId,p.quantity);
  p.product=stock.name;p.stockItems=[{stockId:stock.stockId,quantity:p.quantity}];p.atlasSku=stock.sku;
  const [local]=stock.sku?await db.select().from(products).where(eq(products.sku,stock.sku)):[];
- await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,transportEstimateCents:local?.transportCents??null,stockReleased:1});return out({id},201);
+ await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,transportEstimateCents:local?.transportCents??null,stockReleased:1}).onConflictDoNothing();
+ const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?201:202);
  }catch(e){return out({error:e instanceof Error?e.message:'Atlas stock is unavailable. Refresh the connection before creating an order.'},409)}
 
  }
@@ -62,12 +64,16 @@ export async function POST(req:Request){
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'Connectez Atlas pour choisir une ville.'},409);
  try{const r=await fetch('https://api.atlaslivraison.com/api/external/cities',{headers:{'x-api-key':key},signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error();const j=await r.json() as any;const city=j.data?.find((c:any)=>c.id===b.cityId);if(!city)return out({error:'Ville invalide'},400);const p=JSON.parse(o.payload);await db.update(orders).set({payload:JSON.stringify({...p,cityId:city.id,cityName:city.name}),updatedAt:new Date().toISOString()}).where(and(eq(orders.id,o.id),eq(orders.status,'draft')));return out({ok:true});}catch{return out({error:'Impossible de récupérer les villes Atlas'},502)}
  }
- if(b.action==='send'){
+ if(b.action==='send')return transmitOrder(b.id,user);
+ return out({error:'Action inconnue'},400);
+}
+
+async function transmitOrder(id:string,user:Awaited<ReturnType<typeof getActor>>){
+ if(!user)return out({error:'Accès non autorisé'},403);
+ const db=getDb();
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'API Atlas non configurée. La commande reste enregistrée.'},409);
- const [o]=await db.select().from(orders).where(eq(orders.id,b.id));if(!o||!canAccessOrder(user,o))return out({error:'Commande introuvable'},404);if(o.tracking)return out({tracking:o.tracking});
+ const [o]=await db.select().from(orders).where(eq(orders.id,id));if(!o||!canAccessOrder(user,o))return out({error:'Commande introuvable'},404);if(o.tracking)return out({tracking:o.tracking});
  const p=JSON.parse(o.payload);if(!p.cityId)return out({error:'Cette commande n’a pas de ville Atlas associée. Le rattachement des brouillons sera disponible après connexion Atlas.'},409);
  const lock=await db.update(orders).set({status:'sending',error:null,updatedAt:new Date().toISOString()}).where(and(eq(orders.id,o.id),inArray(orders.status,['draft','error']))).returning();if(!lock.length)return out({error:'Un envoi est déjà en cours. Actualisez la liste.'},409);
  try{const payload=atlasParcelPayload(p,o.id);const r=await fetch('https://api.atlaslivraison.com/api/external/colis',{method:'POST',headers:{'x-api-key':key,'Content-Type':'application/json','Idempotency-Key':o.id},body:JSON.stringify(payload),signal:AbortSignal.timeout(20000)});const j=await r.json().catch(()=>null) as any;if(!r.ok||!j?.success||!j?.data?.code)throw Error(atlasError(r.status,j,key));await db.update(orders).set({transportActualCents:cents(j.data.cfees),status:'sent',tracking:j.data.code,error:null,updatedAt:new Date().toISOString()}).where(eq(orders.id,o.id));return out({tracking:j.data.code});}catch(e){const error=e instanceof Error?e.message:'Erreur de connexion Atlas';await db.update(orders).set({status:'error',error,updatedAt:new Date().toISOString()}).where(eq(orders.id,o.id));return out({error},502)}
- }
- return out({error:'Action inconnue'},400);
 }

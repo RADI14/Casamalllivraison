@@ -1,4 +1,4 @@
-import os,subprocess,tempfile,time,urllib.request,urllib.error,json,secrets,sqlite3
+import uuid,os,subprocess,tempfile,time,urllib.request,urllib.error,json,secrets,sqlite3
 from pathlib import Path
 root=str(Path(__file__).resolve().parent.parent)
 with tempfile.TemporaryDirectory() as temp:
@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory() as temp:
   agents={}
   for email in ['a@test.com','b@test.com']:
    status,h,_=req('/api/auth/login',{'email':email,'password':agentpass});assert status==200;cookie=h['Set-Cookie'].split(';')[0];agents[email]=cookie
-   assert req('/api/orders',draft(email),cookie=cookie)[0]==201
+   fixture=sqlite3.connect(dbfile);at='2026-10-18T12:00:00.000Z';fixture.execute('INSERT INTO orders(id,payload,created_by,created_email,commission_rate,created_at,updated_at,stock_released) VALUES(?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),json.dumps(draft(email)['payload']),email,email,10,at,at,1));fixture.commit();fixture.close()
    assert req('/api/team',cookie=cookie)[0]==403
   for email,cookie in agents.items():
    status,_,data=req('/api/orders',cookie=cookie);rows=json.loads(data)['orders'];assert len(rows)==1 and rows[0]['createdEmail']==email and rows[0]['payload']['price']==199

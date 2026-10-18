@@ -1,4 +1,4 @@
-import os,subprocess,tempfile,time,urllib.request,urllib.error,json,secrets
+import sqlite3,uuid,os,subprocess,tempfile,time,urllib.request,urllib.error,json,secrets
 from pathlib import Path
 root=str(Path(__file__).resolve().parent.parent)
 with tempfile.TemporaryDirectory() as temp:
@@ -38,8 +38,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/whatsapp',cookie=agent)[0]==403
   assert req('/api/whatsapp',{'action':'enroll','orderId':'x','consent':True},cookie=agent)[0]==403
   payload={'fulfillmentMode':'normal','fullname':'Test client','phone':'0612345678','phone2':'','address':'10 rue des fleurs Kenitra','cityName':'Kenitra','cityId':'','storeId':'','product':'Test product','quantity':1,'price':199,'note':'','openpackage':False}
-  s,_,body=req('/api/orders',{'action':'create','payload':payload},cookie=owner);assert s==201,body
-  order_id=json.loads(body)['id']
+  order_id=str(uuid.uuid4());fixture=sqlite3.connect(temp+'/app.sqlite');at='2026-10-18T12:00:00.000Z';fixture.execute('INSERT INTO orders(id,payload,created_by,created_email,created_at,updated_at,stock_released) VALUES(?,?,?,?,?,?,?)',(order_id,json.dumps(payload),'Owner','owner@test.com',at,at,1));fixture.commit();fixture.close()
   s,_,body=req('/api/whatsapp',{'action':'enroll','orderId':order_id,'consent':True},cookie=owner);assert s==200,body
   conversation=json.loads(body)['conversation'];assert conversation['paused']==1
   s,_,body=req('/api/whatsapp',{'action':'send','id':conversation['id'],'kind':'template'},cookie=owner);assert s==409
