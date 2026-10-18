@@ -164,5 +164,16 @@ Object.assign(translations,{
     "fr": "Charges saisies manuellement en DH. Pour un paiement en devise, saisissez le montant réellement débité en DH.",
     "en": "Expenses are recorded manually in DH. Convert foreign currency payments to the amount charged in DH before entering them.",
     "ar": "المصاريف كتدخل يدوياً بالدرهم. إلا خلصتي بعملة أخرى دخل المبلغ اللي تقتطع ليك بالدرهم."
-  }
+  },
+"Choose both a product and an agent for advertising.":{"fr": "Choisissez un produit et une collaboratrice pour la publicité.", "en": "Choose both a product and an agent for advertising.", "ar": "اختار المنتج والبنت بجوج لمصاريف الإعلانات."},
+"Choose a product":{"fr": "Choisir un produit", "en": "Choose a product", "ar": "اختار المنتج"},
+"Choose an agent":{"fr": "Choisir une collaboratrice", "en": "Choose an agent", "ar": "اختار البنت"},
+"Edit expense":{"fr": "Modifier la dépense", "en": "Edit expense", "ar": "تعديل المصروف"},
+"Expense no longer exists. Refresh the list.":{"fr": "Cette dépense n’existe plus. Actualisez la liste.", "en": "Expense no longer exists. Refresh the list.", "ar": "هاد المصروف ما بقاش موجود. حدّث اللائحة."},
+"Advertising must be assigned to both a product and an agent. Enter separate amounts for each product-agent pair.":{"fr": "Chaque publicité doit être liée à un produit et à une collaboratrice. Saisissez un montant séparé pour chaque paire.", "en": "Advertising must be assigned to both a product and an agent. Enter separate amounts for each product-agent pair.", "ar": "كل مصروف إعلانات خاصو منتج وبنت. دخل المبلغ ديال كل منتج عند كل بنت بوحدو."},
+"Ad spend by product and agent":{"fr": "Dépenses publicitaires par produit et collaboratrice", "en": "Ad spend by product and agent", "ar": "مصاريف الإعلانات حسب المنتج والبنت"},
+"Period totals. Each advertising expense is counted once in business profit.":{"fr": "Totaux de la période. Chaque dépense est déduite une seule fois du bénéfice global.", "en": "Period totals. Each advertising expense is counted once in business profit.", "ar": "مجموع الفترة. كل مصروف كيتخصم مرة واحدة من الربح الإجمالي."},
+"All products":{"fr": "Tous les produits", "en": "All products", "ar": "جميع المنتجات"},
+"Allocation required":{"fr": "Affectation à compléter", "en": "Allocation required", "ar": "خاص تكمل الربط"},
+"No advertising spend for these filters.":{"fr": "Aucune dépense publicitaire pour ces filtres.", "en": "No advertising spend for these filters.", "ar": "ما كايناش مصاريف إعلانات بهاد الفلاتر."},
 });

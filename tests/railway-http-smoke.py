@@ -56,6 +56,18 @@ with tempfile.TemporaryDirectory() as temp:
   dashboard=json.loads(req('/api/dashboard',cookie=owner)[2]);assert dashboard['members']
   assert req('/api/expenses',{'action':'delete','id':rows[0]['id']},cookie=owner)[0]==200
   assert json.loads(req('/api/finance',cookie=owner)[2])['total']['overheads']==0
+  status,_,productbody=req('/api/products',{'action':'cost','sku':'ADS-TEST','name':'Product ads test','cost':'35'},cookie=owner);assert status==200,productbody
+  productid=json.loads(productbody)['id'];ad={'date':'2026-10-18','amount':'100','category':'ads','costType':'variable','channel':'Meta Ads','note':'','productId':productid,'memberEmail':'a@test.com'}
+  for patch in [{'productId':''},{'memberEmail':''},{'productId':'','memberEmail':''},{'productId':42}]:assert req('/api/expenses',{**ad,**patch},cookie=owner)[0]==400
+  assert req('/api/expenses',ad,cookie=agents['a@test.com'])[0]==403
+  assert req('/api/expenses',ad,cookie=owner)[0]==201
+  adrows=json.loads(req('/api/expenses',cookie=owner)[2])['expenses'];assert len(adrows)==1
+  adid=adrows[0]['id'];edit={**ad,'action':'update','id':adid,'memberEmail':'b@test.com','amount':'150'}
+  assert req('/api/expenses',edit,cookie=owner)[0]==200
+  assert len(json.loads(req('/api/expenses',cookie=owner)[2])['expenses'])==1
+  report=json.loads(req('/api/finance',cookie=owner)[2]);assert report['total']['ads']==15000 and len(report['adBreakdown'])==1 and report['adBreakdown'][0]['memberEmail']=='b@test.com' and report['adBreakdown'][0]['productId']==productid
+  assert req('/api/expenses',{**edit,'id':'missing'},cookie=owner)[0]==404
+  assert req('/api/expenses',{'action':'delete','id':adid},cookie=owner)[0]==200
   recovery='/api/auth/recovery'
   assert req(recovery,{'email':'a@test.com'},origin=False)[0]==403
   assert req(recovery,{'email':'bad'})[0]==400
