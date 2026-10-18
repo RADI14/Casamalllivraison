@@ -18,6 +18,7 @@ const empty={fulfillmentMode:'stock',phone2:'',change:false,allowtry:false,atlas
 export default function Dashboard({name,role}:{name:string;role:'admin'|'agent'}){
  const isAdmin=role==='admin';
  const createRequestId=useRef<string|null>(null);
+ const syncInFlight=useRef(false);
  const [menuOpen,setMenuOpen]=useState(false);
  const [editingMember,setEditingMember]=useState<any>(null);
  const [commissionBalance,setCommissionBalance]=useState<any>(null);
@@ -37,8 +38,9 @@ export default function Dashboard({name,role}:{name:string;role:'admin'|'agent'}
  async function loadTeam(){if(!isAdmin)return;try{const r=await fetch('/api/team');const j:any=await r.json();if(!r.ok)throw Error(j.error);setTeam(j.members)}catch(e){setTeamError((e as Error).message)}}
  useEffect(()=>{if(tab==='team'||tab==='commissions')loadTeam()},[tab]);
  async function teamAction(body:any){setBusy(true);setTeamError('');try{const r=await fetch('/api/team',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j:any=await r.json();if(!r.ok)throw Error(j.error);setMemberName('');setMemberEmail('');setMemberPassword('');if(body.action==='update'){setEditingMember(null);await load()}await loadTeam()}catch(e){setTeamError((e as Error).message)}finally{setBusy(false)}}
- async function sync(quiet=false){setSyncing(true);try{const r=await fetch('/api/sync',{method:'POST'});const j:any=await r.json();if(!r.ok)throw Error(j.error);if(!quiet)setNotice(t('Sync completed')+': '+j.updated+(j.failed?' · '+j.failed+' '+t('errors'):'')+'.');await load();if(isAdmin)await loadTeam()}catch(e){if(!quiet)setError((e as Error).message)}finally{setSyncing(false)}}
- useEffect(()=>{if(!atlas.configured)return;const t=setInterval(()=>sync(true),60000);return()=>clearInterval(t)},[atlas.configured]);
+ async function sync(quiet=false){if(syncInFlight.current)return;syncInFlight.current=true;setSyncing(true);let updated=0,failed=0;try{let cursor:string|undefined;do{const r=await fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cursor})});const j:any=await r.json();if(!r.ok)throw Error(j.error);updated+=j.updated;failed+=j.failed;cursor=j.nextCursor??undefined;}while(cursor);if(!quiet)setNotice(t('Sync completed')+': '+updated+(failed?' · '+failed+' '+t('errors'):'')+'.');await load();if(isAdmin)await loadTeam()}catch(e){if(!quiet)setError((e as Error).message)}finally{syncInFlight.current=false;setSyncing(false)}}
+ useEffect(()=>{if(!atlas.configured)return;return startStockRefresh(()=>sync(true))},[atlas.configured]);
+ useEffect(()=>{setSelected((previous:any)=>previous?rows.find(r=>r.id===previous.id)??previous:null)},[rows]);
 
  async function action(body:any){const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j:any=await r.json();if(!r.ok)throw Error(j.error??t("Une erreur est survenue"));return j;}
  async function send(id:string){setBusy(true);setError('');try{const j=await action({action:'send',id});setNotice((""+t("Commande transmise à Atlas ·")+" ")+j.tracking);setSelected(null)}catch(e){setError((e as Error).message)}finally{setBusy(false);await load()}}
