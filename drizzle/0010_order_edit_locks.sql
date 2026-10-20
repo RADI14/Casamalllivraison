@@ -1,0 +1,1 @@
+CREATE TABLE order_edit_locks (order_id TEXT PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE, token TEXT NOT NULL, expires_at INTEGER NOT NULL);

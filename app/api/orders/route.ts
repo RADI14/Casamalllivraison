@@ -1,3 +1,4 @@
+import {editAtlasOrder} from '../../../server/edit-atlas-order';
 import {loadCommissionLedger} from '../../../server/order-commission-payments';
 import {getSqlite} from '../../../server/sqlite';
 import {sameOrigin} from '../../../server/request-origin';
@@ -18,6 +19,7 @@ export async function POST(req:Request){
  if(!sameOrigin(req))return out({error:'Origine refusée'},403);
  let b:any;try{b=await req.json()}catch{return out({error:'Requête invalide'},400)}
  const db=getDb();
+ if(b.action==='edit')return editAtlasOrder(b,user);
  if(b.action==='create'){
  const raw=b.payload??{};const p:any=Object.fromEntries(['fullname','phone','address','cityName','cityId','storeId','product','quantity','price','note','openpackage','phone2','change','allowtry'].map(k=>[k,raw[k]]));p.openpackage=raw.openpackage===true;p.change=raw.change===true;p.allowtry=raw.allowtry===true;p.phone2=typeof raw.phone2==='string'?raw.phone2.replace(/\s/g,'').replace(/^\+212/,'0'):'';if(p.phone2&&!/^0[67]\d{8}$/.test(p.phone2))return out({error:'Invalid second phone number.'},400);for(const k of ['fullname','phone','address','cityName','product','note','cityId','storeId'])if(typeof p[k]!=='string'||p[k].length>1000)return out({error:'Champs invalides'},400);
  p.phone=p.phone.replace(/\s/g,'').replace(/^\+212/,'0');
@@ -53,6 +55,7 @@ export async function POST(req:Request){
  if(b.action==='cancel_atlas'){
  const [o]=await db.select().from(orders).where(eq(orders.id,b.id));
  if(!o||!canAccessOrder(user,o))return out({error:'Commande introuvable'},404);
+ if(getSqlite().connection.prepare('SELECT 1 FROM order_edit_locks WHERE order_id=? AND expires_at>?').get(o.id,Date.now()))return out({error:'Une modification est en cours. Réessayez après son enregistrement.'},409);
  if(o.status==='cancelled')return out({ok:true});
  if(!o.tracking||o.status==='sending')return out({error:'Order cannot be cancelled.'},409);
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'API Atlas non configurée.'},409);

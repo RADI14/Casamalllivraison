@@ -45,3 +45,12 @@ Object.assign(translations,{
 "Commission payment status":{"fr": "Paiement commission", "en": "Commission payment status", "ar": "حالة أداء العمولة"},
 "All commission statuses":{"fr": "Toutes les commissions", "en": "All commission statuses", "ar": "جميع حالات العمولة"},
 });
+
+Object.assign(translations,{
+ 'Modifier colis':{fr:'Modifier colis',en:'Edit parcel',ar:'تعديل الطرد'},
+ 'Colis modifié dans Atlas et la plateforme.':{fr:'Colis modifié dans Atlas et la plateforme.',en:'Parcel updated in Atlas and the platform.',ar:'تسجل تعديل الطرد في أطلس والمنصة.'},
+ 'Atlas autorise la modification uniquement au statut Nouveau, avant la collecte.':{fr:'Atlas autorise la modification uniquement au statut Nouveau, avant la collecte.',en:'Atlas allows edits only while the parcel is New, before collection.',ar:'أطلس كيسمح بالتعديل غير ملي الطرد باقي جديد، قبل الجمع.'},
+ 'Modifications enregistrées dans Atlas et la plateforme. Disponible uniquement au statut Nouveau.':{fr:'Modifications enregistrées dans Atlas et la plateforme. Disponible uniquement au statut Nouveau.',en:'Changes are saved in Atlas and the platform. Available only for New parcels.',ar:'التعديلات كتتسجل في أطلس والمنصة. متاحة غير للطرد اللي باقي جديد.'},
+ 'Pour un colis sur stock, modifiez le produit et la quantité directement dans Atlas, puis synchronisez.':{fr:'Pour un colis sur stock, modifiez le produit et la quantité directement dans Atlas, puis synchronisez.',en:'For stock parcels, edit the product and quantity directly in Atlas, then sync.',ar:'لطرود المخزون، بدل المنتج والكمية مباشرة في أطلس ومن بعد دير المزامنة.'},
+ 'Enregistrer les modifications':{fr:'Enregistrer les modifications',en:'Save changes',ar:'حفظ التعديلات'}
+});
