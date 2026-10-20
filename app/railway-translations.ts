@@ -58,3 +58,17 @@ Object.assign(translations,{
 Object.assign(translations,{'Modification disponible après transmission à Atlas.':{fr:'Modification disponible après transmission à Atlas.',en:'Editing is available after transmission to Atlas.',ar:'التعديل متاح من بعد إرسال الطرد لأطلس.'}});
 
 Object.assign(translations,{'Après modification du produit ou de la quantité, vérifiez les articles réservés dans Atlas avant préparation.':{fr:'Après modification du produit ou de la quantité, vérifiez les articles réservés dans Atlas avant préparation.',en:'After changing the product or quantity, verify the reserved stock items in Atlas before preparation.',ar:'من بعد تبديل المنتج أو الكمية، تأكد من المقالات المحجوزة فمخزون أطلس قبل التحضير.'}});
+
+Object.assign(translations,{
+ 'Analyse collaboratrices':{fr:'Analyse collaboratrices',en:'Agent analysis',ar:'تحليل أداء البنات'},
+ 'Analyse par collaboratrice':{fr:'Analyse par collaboratrice',en:'Analysis by agent',ar:'التحليل لكل بنت'},
+ 'Période':{fr:'Période',en:'Period',ar:'الفترة'},
+ 'Un jour précis':{fr:'Un jour précis',en:'Specific day',ar:'نهار محدد'},
+ 'Une période':{fr:'Une période',en:'Date range',ar:'من تاريخ لتاريخ'},
+ 'Analyse incomplète':{fr:'Analyse incomplète',en:'Incomplete analysis',ar:'التحليل ناقص'},
+ 'Analyse des commandes créées aux dates choisies, en heure du Maroc. Le CA livré utilise leur dernier statut Atlas ; il ne représente pas les versements reçus ce jour-là.':{fr:'Analyse des commandes créées aux dates choisies, en heure du Maroc. Le CA livré utilise leur dernier statut Atlas ; il ne représente pas les versements reçus ce jour-là.',en:'Orders are grouped by creation date in Morocco time. Delivered sales use their latest Atlas status, not payments received that day.',ar:'التحليل حسب تاريخ إنشاء الطلبات بتوقيت المغرب. مداخيل الطلبات المسلمة حسب آخر حالة فأطلس، ماشي التحويلات اللي توصلتي بها فداك النهار.'},
+ 'Détail des charges et du calcul':{fr:'Détail des charges et du calcul',en:'Cost and calculation details',ar:'تفاصيل المصاريف والحساب'},
+ 'Aucune collaboratrice à afficher.':{fr:'Aucune collaboratrice à afficher.',en:'No agents to display.',ar:'ما كاينة حتى بنت للعرض.'},
+ 'Profit = CA livré − achats − transport − commissions − publicité − autres charges affectées à cette collaboratrice.':{fr:'Profit = CA livré − achats − transport − commissions − publicité − autres charges affectées à cette collaboratrice.',en:'Profit = delivered sales minus purchases, transport, commissions, advertising and other expenses assigned to this agent.',ar:'الربح = مداخيل الطلبات المسلمة ناقص الشراء والتوصيل والعمولات والإعلانات والمصاريف الأخرى المخصصة لهاد البنت.'},
+ 'Les charges générales non affectées ne sont pas réparties automatiquement entre les collaboratrices. Une commission gagnée ne signifie pas qu’elle a été payée.':{fr:'Les charges générales non affectées ne sont pas réparties automatiquement entre les collaboratrices. Une commission gagnée ne signifie pas qu’elle a été payée.',en:'Unassigned general expenses are not automatically split between agents. Earned commission does not mean it has been paid.',ar:'المصاريف العامة اللي ما مخصصة لحتى بنت ما كتتقسمش تلقائيا. العمولة المستحقة ما كتعنيش أنها تخلصات.'}
+});
