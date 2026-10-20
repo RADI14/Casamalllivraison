@@ -12,3 +12,5 @@ export function orderEditChanges(raw:any,saved:Record<string,any>){
  if(saved.stockItems?.length&&('product'in changes||'quantity'in changes))throw Error('Le produit et la quantité d’un colis sur stock doivent être modifiés dans Atlas.');
  return changes;
 }
+
+export function canEditOrder(order:any){return !!order.tracking&&order.status==='sent'&&(order.atlasState==null||order.atlasState===1)}

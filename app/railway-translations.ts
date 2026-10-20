@@ -54,3 +54,5 @@ Object.assign(translations,{
  'Pour un colis sur stock, modifiez le produit et la quantité directement dans Atlas, puis synchronisez.':{fr:'Pour un colis sur stock, modifiez le produit et la quantité directement dans Atlas, puis synchronisez.',en:'For stock parcels, edit the product and quantity directly in Atlas, then sync.',ar:'لطرود المخزون، بدل المنتج والكمية مباشرة في أطلس ومن بعد دير المزامنة.'},
  'Enregistrer les modifications':{fr:'Enregistrer les modifications',en:'Save changes',ar:'حفظ التعديلات'}
 });
+
+Object.assign(translations,{'Modification disponible après transmission à Atlas.':{fr:'Modification disponible après transmission à Atlas.',en:'Editing is available after transmission to Atlas.',ar:'التعديل متاح من بعد إرسال الطرد لأطلس.'}});
