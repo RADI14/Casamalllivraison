@@ -56,3 +56,5 @@ Object.assign(translations,{
 });
 
 Object.assign(translations,{'Modification disponible après transmission à Atlas.':{fr:'Modification disponible après transmission à Atlas.',en:'Editing is available after transmission to Atlas.',ar:'التعديل متاح من بعد إرسال الطرد لأطلس.'}});
+
+Object.assign(translations,{'Après modification du produit ou de la quantité, vérifiez les articles réservés dans Atlas avant préparation.':{fr:'Après modification du produit ou de la quantité, vérifiez les articles réservés dans Atlas avant préparation.',en:'After changing the product or quantity, verify the reserved stock items in Atlas before preparation.',ar:'من بعد تبديل المنتج أو الكمية، تأكد من المقالات المحجوزة فمخزون أطلس قبل التحضير.'}});

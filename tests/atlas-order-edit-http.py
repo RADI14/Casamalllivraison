@@ -13,7 +13,7 @@ globalThis.fetch=async(url,options={})=>{
  const base=parcels.get(code)??{code,stateId:code==='COLLECTED'?2:1,stateName:'Nouveau',fullname:code==='EXTERNAL'?'External name':'Old name',phone:'0612345678',address:'Original address',cityId:'kenitra',cityName:'Kenitra',price:199,product:'Press',quantity:1,note:'',cfees:'30.00'};
  if(options.method==='PATCH'){
   const b=JSON.parse(options.body);if('stockItems'in b||'createdEmail'in b||'change'in b)throw Error('Forbidden field');
-  if(code==='REFUSE')return Response.json({success:false,message:'Collected atl_mocksecret'}, {status:400});
+  if(code==='REFUSE'||code==='REFUSEPRODUCT')return Response.json({success:false,message:'Collected atl_mocksecret'}, {status:400});
   if(code==='RACE')await new Promise(resolve=>setTimeout(resolve,400));
   parcels.set(code,{...base,...b,...(b.cityId?{cityName:'Rabat',cfees:'40.00'}:{})});
   return Response.json({success:true,data:{code,...b}});
@@ -42,7 +42,7 @@ globalThis.fetch=async(url,options={})=>{
   _,h,_=req('/api/auth/login',{'email':'a@test.com','password':agentpass});agent=h['Set-Cookie'].split(';')[0]
   fixture=sqlite3.connect(dbfile)
   payload={'fullname':'Old name','phone':'0612345678','phone2':'0698765432','address':'Original address','cityId':'kenitra','cityName':'Kenitra','product':'Press','quantity':1,'price':199,'note':'','openpackage':True,'atlasSku':'P','stockItems':[{'stockId':'p','quantity':1}]}
-  codes=['GOOD','COLLECTED','EXTERNAL','REFUSE','RACE','AGENT','READFAIL']
+  codes=['GOOD','COLLECTED','EXTERNAL','REFUSE','RACE','AGENT','READFAIL','QUANTITY','PRODUCT','REFUSEPRODUCT']
   for code in codes:fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,stock_released,product_id,unit_cost_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(code,json.dumps(payload),'sent',code,'Agent','a@test.com' if code=='AGENT' else 'owner@test.com',10,'2026-10-18T12:00:00Z','2026-10-18T12:00:00Z',1,'product-1',5000))
   fixture.commit()
   def edit(code,changes,cookie=owner,revision='2026-10-18T12:00:00Z',origin=base):return req('/api/orders',{'action':'edit','id':code,'expectedUpdatedAt':revision,'changes':changes},cookie,origin)[0]
@@ -50,7 +50,7 @@ globalThis.fetch=async(url,options={})=>{
   assert edit('GOOD',{'fullname':'New name'},origin='https://evil.test')==403
   assert edit('GOOD',{'fullname':'New name'},cookie=agent)==404
   assert edit('GOOD',{'fullname':'New name'},revision='stale')==409
-  for bad in [{'createdEmail':'evil@test.com'},{'change':True},{'stockItems':[]},{'phone':'bad'},{'address':'short'},{'quantity':2},{'price':0}]:assert edit('GOOD',bad)==400,bad
+  for bad in [{'createdEmail':'evil@test.com'},{'change':True},{'stockItems':[]},{'phone':'bad'},{'address':'short'},{'price':0}]:assert edit('GOOD',bad)==400,bad
   assert edit('COLLECTED',{'fullname':'New name'})==409
   assert edit('EXTERNAL',{'fullname':'New name'})==409
   assert edit('REFUSE',{'fullname':'New name'})==502
@@ -60,6 +60,16 @@ globalThis.fetch=async(url,options={})=>{
   assert row['payload']['fullname']=='New name' and row['payload']['cityName']=='Rabat' and row['payload']['price']==279 and row['transportActualCents']==4000,row
   assert row['productId']=='product-1' and row['unitCostCents']==5000 and row['createdEmail']=='owner@test.com' and row['commissionRate']==10
   assert row['payload']['stockItems']==payload['stockItems']
+  assert edit('QUANTITY',{'quantity':3})==200
+  quantity_row=next(r for r in req('/api/orders',cookie=owner)[2]['orders'] if r['id']=='QUANTITY')
+  assert quantity_row['payload']['quantity']==3 and quantity_row['unitCostCents']==5000
+  assert edit('PRODUCT',{'product':'Other product','quantity':2})==200
+  product_row=next(r for r in req('/api/orders',cookie=owner)[2]['orders'] if r['id']=='PRODUCT')
+  assert product_row['payload']['product']=='Other product' and product_row['payload']['quantity']==2
+  assert product_row['productId'] is None and product_row['unitCostCents'] is None and 'stockItems' not in product_row['payload']
+  assert product_row['createdEmail']=='owner@test.com' and product_row['commissionRate']==10
+  assert edit('REFUSEPRODUCT',{'product':'Refused product','quantity':2})==502
+  assert fixture.execute("SELECT payload FROM orders WHERE id='REFUSEPRODUCT'").fetchone()[0]==json.dumps(payload)
   assert edit('READFAIL',{'cityId':'rabat','note':'Confirmed patch'})==200
   fallback=next(r for r in req('/api/orders',cookie=owner)[2]['orders'] if r['id']=='READFAIL')
   assert fallback['payload']['note']=='Confirmed patch' and fallback['payload']['cityName']=='Rabat' and fallback['transportActualCents'] is None

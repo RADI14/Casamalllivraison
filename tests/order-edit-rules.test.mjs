@@ -5,9 +5,9 @@ test('edits normalize phones, strip unchanged values and reject unsupported fiel
  assert.deepEqual(orderEditChanges({phone2:'',price:279,openpackage:false},{price:199,openpackage:true}),{price:279,openpackage:false});
  for(const raw of [null,[],{createdEmail:'forged'},{change:true},{price:'99'},{quantity:1.5},{address:'short'},{openpackage:1},{phone:'0512345678'}])assert.throws(()=>orderEditChanges(raw,{}));
 });
-test('stock parcels retain their product and reservation quantity',()=>{
+test('documented product and quantity edits are allowed for stock parcels',()=>{
  const saved={stockItems:[{stockId:'s',quantity:1}],product:'Press',quantity:1};
- assert.throws(()=>orderEditChanges({quantity:2},saved));assert.throws(()=>orderEditChanges({product:'Other'},saved));
+ assert.deepEqual(orderEditChanges({quantity:2},saved),{quantity:2});assert.deepEqual(orderEditChanges({product:'Other'},saved),{product:'Other'});
  assert.deepEqual(orderEditChanges({product:'Press',quantity:1,note:'New'},saved),{note:'New'});
  assert.deepEqual(orderEditChanges({product:'Other',quantity:2},{product:'Press',quantity:1}),{product:'Other',quantity:2});
 });

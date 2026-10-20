@@ -9,7 +9,6 @@ export function orderEditChanges(raw:any,saved:Record<string,any>){
   else {if(typeof value!=='string'||value.length>1000)throw Error('Champs invalides.');value=value.trim();if(['fullname','address','cityId','product'].includes(key)&&!value)throw Error('Complétez les champs obligatoires.');if(key==='address'&&value.replace(/\s/g,'').length<10)throw Error('Adresse : 10 caractères hors espaces minimum.');if(key==='phone'||key==='phone2'){value=value.replace(/\s/g,'').replace(/^\+212/,'0');if((key==='phone'||value)&&!/^0[67]\d{8}$/.test(value))throw Error('Téléphone invalide (06/07).');}}
   if(value!==(saved[key]??(['openpackage','allowtry'].includes(key)?false:'')))changes[key]=value;
  }
- if(saved.stockItems?.length&&('product'in changes||'quantity'in changes))throw Error('Le produit et la quantité d’un colis sur stock doivent être modifiés dans Atlas.');
  return changes;
 }
 
