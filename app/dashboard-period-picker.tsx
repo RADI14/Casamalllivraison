@@ -1,0 +1,6 @@
+'use client';
+import {useI18n} from './i18n';
+export default function DashboardPeriodPicker({preset,from,to,onPreset,onDates}:{preset:string;from:string;to:string;onPreset:(value:string)=>void;onDates:(from:string,to:string,day:boolean)=>void}){
+ const {t}=useI18n();
+ return <div className="period-bar"><label>{t('Période de saisie')}<select value={preset} onChange={e=>onPreset(e.target.value)}><option value="all">{t('Depuis le début')}</option><option value="today">{t('Aujourd’hui')}</option><option value="day">{t('Un jour précis')}</option><option value="7">{t('7 derniers jours')}</option><option value="30">{t('30 derniers jours')}</option><option value="custom">{t('Une période')}</option></select></label>{preset==='day'?<label>{t('Date')}<input required type="date" value={from} onChange={e=>onDates(e.target.value,e.target.value,true)}/></label>:<><label>{t('Du')}<input type="date" value={from} max={to||undefined} onChange={e=>onDates(e.target.value,to,false)}/></label><label>{t('Au')}<input type="date" value={to} min={from||undefined} onChange={e=>onDates(from,e.target.value,false)}/></label></>}<p>{t('Dates de création des commandes')}<br/><span>{t('Heure du Maroc')}</span></p></div>
+}
