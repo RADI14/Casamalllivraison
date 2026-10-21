@@ -4,6 +4,7 @@ import './atlas-theme.css';
 import './mobile.css';
 import './fastlivraison.css';
 import './dark-theme.css';
+import './fast-workspace.css';
 import {LanguageProvider} from './i18n';
 export const metadata: Metadata = {title:'fastlivraison — Espace équipe',description:'Votre espace de saisie et suivi des commandes COD.'};
 export const viewport:Viewport={width:'device-width',initialScale:1,viewportFit:'cover'};
