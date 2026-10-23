@@ -4,11 +4,11 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {memberEditStatements} from '../app/team-edit.ts';
 const input={oldEmail:'a@test.com',email:'new@test.com',name:'New name',active:0,originalName:'Old name',originalActive:1,createdAt:'2026-10-16'};
-function db(){const d=new DatabaseSync(':memory:');d.exec(`CREATE TABLE members(email TEXT PRIMARY KEY,name TEXT,active INTEGER,created_at TEXT);
+function db(){const d=new DatabaseSync(':memory:');d.exec(`CREATE TABLE members(email TEXT PRIMARY KEY,name TEXT,active INTEGER,created_at TEXT,deleted_at TEXT);
  CREATE TABLE orders(created_email TEXT,created_by TEXT,tracking TEXT);
  CREATE TABLE ad_expenses(member_email TEXT,amount_cents INTEGER);
  CREATE TABLE commission_payments(member_email TEXT,amount_cents INTEGER,note TEXT);
- INSERT INTO members VALUES('a@test.com','Old name',1,'2026-10-16'),('b@test.com','B',1,'2026-10-16');
+ INSERT INTO members VALUES('a@test.com','Old name',1,'2026-10-16',NULL),('b@test.com','B',1,'2026-10-16',NULL);
  INSERT INTO orders VALUES('a@test.com','Old name','AT1'),('b@test.com','B','AT2');
  INSERT INTO ad_expenses VALUES('a@test.com',5000),('b@test.com',1000);
  INSERT INTO commission_payments VALUES('a@test.com',2000,'Paid externally'),('b@test.com',1000,'Other');`);return d}
