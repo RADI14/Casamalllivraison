@@ -8,7 +8,7 @@ import './business-charts.css';
 const palette=['#8c72e8','#ff986d','#29b89a','#57a8df','#d378b5','#bda659'];
 type Series={key:string;label:string;color:string};
 function Panel({title,note,icon:Icon,children,wide=false}:{title:string;note:string;icon:any;children:React.ReactNode;wide?:boolean}){return <section className={'analytics-panel'+(wide?' analytics-wide':'')}><div className="analytics-heading"><div><h3>{title}</h3><p>{note}</p></div><Icon size={20}/></div>{children}</section>}
-function Trend({rows,series,currency=false}:{rows:any[];series:Series[];currency?:boolean}){
+export function Trend({rows,series,currency=false}:{rows:any[];series:Series[];currency?:boolean}){
  const {t,money,locale}=useI18n(),id=useId();const [selected,setSelected]=useState<number|null>(null);
  const [hidden,setHidden]=useState<string[]>([]),visible=series.filter(s=>!hidden.includes(s.key));
  const format=(n:number|null)=>n===null?t('Incomplete costs'):currency?money(n/100):new Intl.NumberFormat(locale).format(n);
