@@ -177,3 +177,61 @@ Object.assign(translations,{
 "Allocation required":{"fr": "Affectation à compléter", "en": "Allocation required", "ar": "خاص تكمل الربط"},
 "No advertising spend for these filters.":{"fr": "Aucune dépense publicitaire pour ces filtres.", "en": "No advertising spend for these filters.", "ar": "ما كايناش مصاريف إعلانات بهاد الفلاتر."},
 });
+
+Object.assign(translations,{
+  "Currency": {
+    "en": "Currency",
+    "fr": "Devise",
+    "ar": "العملة"
+  },
+  "Amount (USD)": {
+    "en": "Amount (USD)",
+    "fr": "Montant (USD)",
+    "ar": "المبلغ بالدولار"
+  },
+  "Exchange rate (DH for 1 USD)": {
+    "en": "Exchange rate (DH for 1 USD)",
+    "fr": "Taux de change (DH pour 1 USD)",
+    "ar": "سعر الصرف (درهم لكل دولار)"
+  },
+  "Use latest rate": {
+    "en": "Use latest rate",
+    "fr": "Utiliser le dernier taux",
+    "ar": "استعمل آخر سعر صرف"
+  },
+  "Loading rate…": {
+    "en": "Loading rate…",
+    "fr": "Chargement du taux…",
+    "ar": "جاري تحميل سعر الصرف…"
+  },
+  "Rate date": {
+    "en": "Rate date",
+    "fr": "Date du taux",
+    "ar": "تاريخ سعر الصرف"
+  },
+  "Amount deducted from profit": {
+    "en": "Amount deducted from profit",
+    "fr": "Montant déduit du bénéfice",
+    "ar": "المبلغ المخصوم من الربح"
+  },
+  "Indicative latest rate; adjust to your bank rate for the expense date.": {
+    "en": "Indicative latest rate; adjust to your bank rate for the expense date.",
+    "fr": "Dernier taux indicatif ; ajustez-le au taux bancaire à la date de la dépense.",
+    "ar": "آخر سعر صرف تقريبي؛ يمكن تعديله حسب البنك وتاريخ المصروف."
+  },
+  "Automatic rate unavailable. Enter your bank exchange rate.": {
+    "en": "Automatic rate unavailable. Enter your bank exchange rate.",
+    "fr": "Taux automatique indisponible. Saisissez le taux de votre banque.",
+    "ar": "سعر الصرف التلقائي غير متوفر. دخل سعر الصرف ديال البنك."
+  },
+  "USD expenses are converted once at the saved rate. All totals and profits remain in DH.": {
+    "en": "USD expenses are converted once at the saved rate. All totals and profits remain in DH.",
+    "fr": "Les dépenses en USD sont converties une seule fois au taux enregistré. Totaux et bénéfices restent en DH.",
+    "ar": "مصاريف الدولار كتتحول مرة واحدة بالسعر المسجل. المجموع والربح كيبقاو بالدرهم."
+  },
+  "Record expenses in DH or USD. Profit is calculated in DH.": {
+    "en": "Record expenses in DH or USD. Profit is calculated in DH.",
+    "fr": "Saisissez vos dépenses en DH ou USD. Le bénéfice est calculé en DH.",
+    "ar": "سجل المصاريف بالدرهم أو الدولار. الربح كيتحسب بالدرهم."
+  }
+});
