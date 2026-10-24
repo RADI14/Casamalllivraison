@@ -8,5 +8,5 @@ export async function GET(req:Request){
  const end=new URL(req.url).searchParams.get('to')||moroccoDay(new Date());
  if(!validDay(end)||end>moroccoDay(new Date()))return Response.json({error:'Choisissez une période valide.'},{status:400});
  const db=getDb();const [team,records,expenses]=await Promise.all([db.select().from(members),db.select().from(orders),db.select().from(adExpenses)]);
- return Response.json(agentDailyTrends(team,records,expenses,end),{headers:{'Cache-Control':'private, no-store'}});
+ return Response.json(agentDailyTrends(team.filter(m=>!m.deletedAt),records,expenses,end),{headers:{'Cache-Control':'private, no-store'}});
 }

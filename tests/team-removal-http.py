@@ -33,9 +33,23 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/team',{**remove,'email':'owner@test.com'},owner)[0]==400
   assert req('/api/team',{**remove,'name':'Stale'},owner)[0]==409
   assert req('/api/orders',cookie=agent)[0]==200
+  fixture=sqlite3.connect(dbfile)
+  fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,atlas_state,unit_cost_cents,transport_actual_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',('history',json.dumps({'fullname':'Demo','product':'Demo','quantity':1,'price':100}),'sent','AT-HISTORY','Agent','a@test.com',10,'2026-10-23T10:00:00Z','2026-10-23T10:00:00Z',17,2000,1000))
+  fixture.execute('INSERT INTO ad_expenses(id,member_email,date,amount_cents,channel,created_at) VALUES(?,?,?,?,?,?)',('ads','a@test.com','2026-10-23',500,'Meta Ads','2026-10-23T10:00:00Z'));fixture.commit();fixture.close()
+  finance_before=req('/api/finance?view=dashboard',cookie=owner)[2]['total']
+  dashboard_before=req('/api/dashboard',cookie=owner)[2]
   assert req('/api/team',remove,owner)[0]==200
   listed=req('/api/team',cookie=owner)[2];assert all(x['email']!='a@test.com' for x in listed['members'])
   gone=next(x for x in listed['removedMembers'] if x['email']=='a@test.com');assert gone['active']==0
+  dashboard=req('/api/dashboard',cookie=owner)[2]
+  assert all(x['email']!='a@test.com' for x in dashboard['members']) and dashboard['totalMembers']==1
+  assert dashboard['totals']==dashboard_before['totals']
+  trends=req('/api/team-trends?to=2026-10-23',cookie=owner)[2]
+  assert all(x['email']!='a@test.com' for x in trends['members'])
+  finance=req('/api/finance?view=dashboard',cookie=owner)[2]
+  assert finance['total']==finance_before and all(x['email']!='a@test.com' for x in finance['members'])
+  assert all(x['memberEmail']!='a@test.com' for x in finance['adBreakdown'])
+  assert any(x['email']=='a@test.com' for x in req('/api/finance',cookie=owner)[2]['members'])
   assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==401
   assert req('/api/orders',cookie=agent)[0] in (401,403)
   assert req('/api/team',{**remove,'action':'update','oldEmail':m['email'],'originalName':m['name'],'active':True},owner)[0]==409
@@ -43,6 +57,9 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==401
   restore={**remove,'action':'restore','originalActive':0,'deletedAt':gone['deletedAt']}
   assert req('/api/team',restore,owner)[0]==200
+  assert any(x['email']=='a@test.com' for x in req('/api/dashboard',cookie=owner)[2]['members'])
+  assert any(x['email']=='a@test.com' for x in req('/api/team-trends?to=2026-10-23',cookie=owner)[2]['members'])
+  assert any(x['email']=='a@test.com' for x in req('/api/finance?view=dashboard',cookie=owner)[2]['members'])
   assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==401
   assert req('/api/team',{'action':'toggle','email':m['email'],'active':True},owner)[0]==200
   assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==200
