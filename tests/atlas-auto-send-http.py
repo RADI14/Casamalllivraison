@@ -38,7 +38,7 @@ globalThis.fetch=async(url,options={})=>{
   else:raise RuntimeError('health timed out')
   status,h,_=req('/api/auth/login',{'email':'owner@test.com','password':password});assert status==200;owner=h['Set-Cookie'].split(';')[0]
   payload={'fulfillmentMode':'stock','atlasStockId':'stock-test','fullname':'Client','phone':'0612345678','phone2':'','address':'10 rue des fleurs Kenitra','cityName':'Kenitra','cityId':'city-test','storeId':'','product':'Stock product','quantity':2,'price':199,'note':'','openpackage':False,'change':False,'allowtry':False}
-  def create(name='Client',**patch):return {'action':'create','requestId':str(uuid.uuid4()),'payload':{**payload,'fullname':name,**patch}}
+  def create(name='Client',**patch):return {'action':'create','requestId':str(uuid.uuid4()),'payload':{**payload,'fullname':name,'phone':{'Fail once':'0612345679','Ambiguous response':'0612345680'}.get(name,payload['phone']),**patch}}
   assert req('/api/orders',create(fulfillmentMode='normal'),owner)[0]==400
   assert req('/api/orders',create(cityId=''),owner)[0]==400
   assert req('/api/orders',create(atlasStockId='missing'),owner)[0]==409

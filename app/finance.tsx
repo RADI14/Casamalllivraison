@@ -8,7 +8,7 @@ import {convertExpense} from './expense-currency';
 import FinanceOverview from './finance-overview';
 import AdSpendBreakdown from './ad-spend-breakdown';
 import ProductCosts from './product-costs';
-export default function Finance(){const {t,money}=useI18n();const [data,setData]=useState<any>(null),[expenses,setExpenses]=useState<any[]>([]),[catalog,setCatalog]=useState<any[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState(false),[from,setFrom]=useState(''),[to,setTo]=useState(''),[tab,setTab]=useState('profit'),[expense,setExpense]=useState({id:'',productId:'',memberEmail:'',date:moroccoDay(new Date()),channel:'Meta Ads',category:'ads',costType:'variable',amount:'',currency:'MAD',exchangeRate:'',note:''}),[armed,setArmed]=useState(''),[categoryFilter,setCategoryFilter]=useState('all');
+export default function Finance({initialTab='profit'}:{initialTab?:string}){const {t,money}=useI18n();const [data,setData]=useState<any>(null),[expenses,setExpenses]=useState<any[]>([]),[catalog,setCatalog]=useState<any[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState(false),[from,setFrom]=useState(''),[to,setTo]=useState(''),[tab,setTab]=useState(initialTab),[expense,setExpense]=useState({id:'',productId:'',memberEmail:'',date:moroccoDay(new Date()),channel:'Meta Ads',category:'ads',costType:'variable',amount:'',currency:'MAD',exchangeRate:'',note:''}),[armed,setArmed]=useState(''),[categoryFilter,setCategoryFilter]=useState('all');
  const request=useRef(0),rateRequest=useRef(0);
  const [rateBusy,setRateBusy]=useState(false),[rateError,setRateError]=useState(''),[rateDate,setRateDate]=useState('');
  const converted=convertExpense(expense.amount,expense.currency,expense.exchangeRate);

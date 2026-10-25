@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+import {duplicateOrders,duplicatePhone} from '../../duplicate-order-rules';
 import {editAtlasOrder} from '../../../server/edit-atlas-order';
 import {loadCommissionLedger} from '../../../server/order-commission-payments';
 import {getSqlite} from '../../../server/sqlite';
@@ -11,7 +13,7 @@ import {cents} from '../../finance-rules';
 import {atlasRead,normalizeStocks,stockSelection} from '../../atlas-stock';
 import {atlasParcelPayload,atlasError} from '../../atlas-request';
 import {cancelAtlasParcel} from '../../atlas-cancel';
-import {desc,eq,and,inArray} from 'drizzle-orm';
+import {desc,eq,and,inArray,gte} from 'drizzle-orm';
 const out=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);return out({orders:rows.map(r=>{const {unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),commission:commission(r),...ledger.states.get(r.id),payload:JSON.parse(r.payload)}}),role:actor.role});}
 export async function POST(req:Request){
@@ -34,6 +36,10 @@ export async function POST(req:Request){
  try{
  const stock=stockSelection(normalizeStocks(await atlasRead(key,'/stocks')),raw.atlasStockId,p.quantity);
  p.product=stock.name;p.stockItems=[{stockId:stock.stockId,quantity:p.quantity}];p.atlasSku=stock.sku;
+ const recent=await db.select().from(orders).where(gte(orders.createdAt,new Date(Date.now()-7*86400000).toISOString()));
+ const duplicates=duplicateOrders(recent,{phone:p.phone,stockId:stock.stockId,sku:stock.sku,product:stock.name});
+ if(duplicates.length){const confirmation=createHash('sha256').update(JSON.stringify([id,user.email,duplicatePhone(p.phone),stock.stockId,duplicates.map(o=>[o.id,o.updatedAt,o.status]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])))])).digest('hex');if(b.allowDuplicate!==true||b.duplicateConfirmation!==confirmation)return out({error:'Possible duplicate order: same phone and product within the last 7 days. Review before sending.',code:'duplicate_order',duplicateConfirmation:confirmation,count:duplicates.length},409)}
+
  const [local]=stock.sku?await db.select().from(products).where(eq(products.sku,stock.sku)):[];
  await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,transportEstimateCents:local?.transportCents??null,stockReleased:1}).onConflictDoNothing();
  const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?201:202);
