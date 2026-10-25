@@ -235,3 +235,5 @@ Object.assign(translations,{
     "ar": "سجل المصاريف بالدرهم أو الدولار. الربح كيتحسب بالدرهم."
   }
 });
+
+Object.assign(translations,{"After Atlas delivery": {"en": "After Atlas delivery", "fr": "Après livraison Atlas", "ar": "الباقي بعد توصيل Atlas"}, "Profit before advertising": {"en": "Profit before advertising", "fr": "Bénéfice avant publicité", "ar": "الربح قبل الإعلانات"}});
