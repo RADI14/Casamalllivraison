@@ -1,0 +1,6 @@
+.member-presence{display:flex;flex-direction:column;gap:4px;margin-top:7px;font-size:12px;line-height:1.5;color:var(--muted,#697383)}
+.member-presence>span{display:flex;align-items:center;gap:6px;font-weight:700}
+.member-presence i{width:7px;height:7px;flex-shrink:0;border-radius:50%;background:currentColor}
+.member-presence.online>span{color:#16764d}.member-presence.offline>span{color:#687080}
+.member-presence small{font-size:11px;font-weight:400;white-space:normal}
+[data-theme="dark"] .member-presence{color:#bdb4ca}[data-theme="dark"] .member-presence.online>span{color:#75dcb1}[data-theme="dark"] .member-presence.offline>span{color:#bdb4ca}
