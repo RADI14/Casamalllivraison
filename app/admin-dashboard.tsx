@@ -29,9 +29,9 @@ export default function AdminDashboard({connected,onSync,onOpenAgent,onTeam,onFi
  {error&&<div className="alert danger" role="alert"><AlertCircle size={16}/>{t(error)}</div>}
  {!connected&&<div className="subtle"><b>{t("Atlas reste à connecter.")}</b>{' '}{t("Les saisies sont disponibles ; les livraisons et commissions nécessitent les statuts confirmés par Atlas.")}</div>}
  <div className="stats dashboard-stats">{[[Users,t("Collaboratrices actives"),data?.activeMembers??0,(""+t("Sur")+" ")+(data?.totalMembers??0)+(" "+t("sous-comptes")+"")],[Package,t("Commandes de l’équipe"),total?.orders??0,t("Créées pendant la période")],[Truck,t("Transmises à Atlas"),total?.transmitted??0,t("Avec un code de suivi")],[Check,t("Commandes livrées"),total?.delivered??0,t("Dernier statut Atlas : Livré")],[ArrowUpRight,t("Taux de livraison"),rate(total?.deliveryRate??null),t("Livrées ÷ transmises à Atlas")],[ArrowUpRight,t("Commission remaining"),money((data?.settlement.dueCents??0)/100),t("Outstanding commissions · all time")]].map(([Icon,title,value,note]:any,i)=><div className={'stat stat-'+i} key={title}><div className="stat-top"><span>{title}</span><Icon size={18}/></div><strong>{loading&&!data?'…':value}</strong><small>{note}</small></div>)}</div>
+ <AgentTrendCharts/>
  <OperationsPanel from={from} to={to} onFinance={onFinance} onSync={onSync}/>
  <AgentPerformanceCards periodControls={<DashboardPeriodPicker preset={preset} from={from} to={to} onPreset={period} onDates={(a,b,day)=>{setPreset(day?'day':'custom');setFrom(a);setTo(b)}}/>} members={data?.members??[]} loading={loading} onOpen={onOpenAgent} onTeam={onTeam}/>
- <AgentTrendCharts/>
  <ProfitSummary from={from} to={to} onOpen={()=>onFinance()} onOpenAgent={onOpenAgent}/>
  <details className="simple-details dashboard-detail-tables"><summary>{t("Performance par collaboratrice")} · {t("Détail de la commande")}</summary>
  <p className="mobile-table-hint">{t('Swipe tables horizontally to see all columns.')}</p>
