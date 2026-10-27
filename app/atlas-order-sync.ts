@@ -2,6 +2,7 @@ import {cents} from './finance-rules.ts';
 /** Atlas owns parcel details; local authorship and accounting records stay local. */
 export function atlasOrderSnapshot(saved:Record<string,any>,remote:Record<string,any>){
  const payload={...saved};
+ if(remote.stateId!==17){delete payload.atlasDeliveredAt;delete payload.atlasDeliveryHistoryCheckedAt;}
  for(const field of ['fullname','phone','address','cityId','cityName','product']){
   if(typeof remote[field]==='string'&&remote[field].trim()&&remote[field].length<=1000)payload[field]=remote[field];
  }

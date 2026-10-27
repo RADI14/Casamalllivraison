@@ -9,6 +9,7 @@ const original=globalThis.fetch;
 globalThis.fetch=async(url,options={})=>{
  if(!String(url).startsWith('https://api.atlaslivraison.com/'))return original(url,options);
  if(options.method&&options.method!=='GET')throw Error('Carrier writes forbidden in sync test');
+ if(String(url).endsWith('/history'))return Response.json({success:true,data:[{stateId:17,at:'2026-10-25T12:00:00Z'}]});
  const code=String(url).split('/').pop();
  if(code==='FAIL')return Response.json({success:false},{status:503});
  if(code==='WRONG')return Response.json({success:true,data:{code:'other',stateId:17}});
@@ -50,6 +51,7 @@ globalThis.fetch=async(url,options={})=>{
   rows={r['tracking']:r for r in req('/api/orders',cookie=owner)[2]['orders']}
   row=rows['GOOD-1'];assert row['payload']['fullname']=='Edited in Atlas' and row['payload']['cityName']=='Rabat' and row['payload']['price']==299.5 and row['payload']['quantity']==3
   assert row['createdEmail']=='owner@test.com' and row['commissionRate']==10 and row['unitCostCents']==5000 and row['transportActualCents']==4000
+  assert row['payload']['atlasDeliveredAt']=='2026-10-25T12:00:00.000Z'
   assert rows['CANCEL']['status']=='cancelled'
   assert rows['GOOD-1']['status']=='sent' # restored in Atlas after a prior local cancellation
   assert rows['PRODUCT']['payload']['product']=='Changed product' and rows['PRODUCT']['productId'] is None and rows['PRODUCT']['unitCostCents'] is None and 'atlasSku' not in rows['PRODUCT']['payload']
