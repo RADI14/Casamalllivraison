@@ -43,3 +43,5 @@
 [data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(2) td{color:#cfb6ff}
 [data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(3) td{color:#7ee7ad}
 [data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(4) td{color:#ffd18a}
+
+.individual-agent-heading{min-width:0}.individual-agent-panel header .member-presence,.individual-agent-panel header .member-presence>span{background:transparent;border:0;border-radius:0;padding:0}.individual-agent-panel header .member-presence{margin-top:6px}.individual-agent-panel header .member-presence>span{font-size:11px}.individual-agent-panel header .member-presence small{font-size:10px}
