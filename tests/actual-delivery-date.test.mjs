@@ -20,3 +20,10 @@ test('sync enriches history read-only, caches dates and never substitutes sync t
  await enrichDeliveryDate('mock','code',payload,19,fetcher);assert.equal(payload.atlasDeliveredAt,undefined);
  const missing={};await enrichDeliveryDate('mock','code',missing,17,async()=>Response.json({}, {status:503}));assert.equal(missing.atlasDeliveredAt,undefined);
 });
+
+test('expected Atlas amount subtracts actual shipping from parcel COD total without multiplying quantity',()=>{
+ const rows=[order('a','2026-09-01T12:00:00Z',null,{transportActualCents:3000,payload:JSON.stringify({atlasDeliveredAt:'2026-10-26T12:00:00Z',price:199,quantity:3})}),order('b','2026-09-01T12:00:00Z',null,{transportActualCents:0,payload:JSON.stringify({atlasDeliveredAt:'2026-10-26T12:00:00Z',price:100,quantity:1})})];
+ const p=dailyDeliveries(team,rows,['2026-10-26']).get('a@test.com').points[0];assert.equal(p.revenue,29900);assert.equal(p.shipping,3000);assert.equal(p.revenue-p.shipping,26900);assert.equal(p.missingAmounts,0);
+ rows[0].transportActualCents=null;assert.equal(dailyDeliveries(team,rows,['2026-10-26']).get('a@test.com').points[0].missingAmounts,1);
+ rows[0].transportActualCents=30000;const loss=dailyDeliveries(team,rows,['2026-10-26']).get('a@test.com').points[0];assert.equal(loss.revenue-loss.shipping,-100);
+});
