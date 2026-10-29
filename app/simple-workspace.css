@@ -16,3 +16,30 @@
 .simple-agent-table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink)}.simple-agent-table{width:100%;min-width:690px;border-collapse:collapse;text-align:start}.simple-agent-table th,.simple-agent-table td{padding:16px;text-align:start;border-bottom:1px solid var(--line);white-space:nowrap;font-size:14px}.simple-agent-table thead th{font-size:12px;color:var(--muted);font-weight:600}.simple-agent-table tbody th{font-weight:700}.simple-agent-table tbody tr:last-child>*{border-bottom:0}.simple-agent-table small{display:block;font-size:10px;color:var(--muted);margin-top:5px;font-weight:400}.simple-agent-table .agent-profit-positive{color:#128154;font-weight:700}.simple-agent-table .agent-profit-negative{color:#cd3654;font-weight:700}[data-theme=dark] .simple-agent-table .agent-profit-positive{color:#7ee7ad}[data-theme=dark] .simple-agent-table .agent-profit-negative{color:#ff9ab0}@media(max-width:760px){.simple-agent-table th,.simple-agent-table td{padding:13px 12px}.simple-agent-table th:first-child{position:sticky;inset-inline-start:0;background:var(--surface);z-index:1}}
 
 .individual-agent-tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:16px}.individual-agent-panel{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;color:var(--ink)}.individual-agent-panel>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 16px;border-bottom:1px solid var(--line)}.individual-agent-panel h3{margin:0;font-size:16px;overflow-wrap:anywhere}.individual-agent-panel header span{font-size:11px;color:var(--muted)}.simple-agent-table.individual-agent-table{min-width:0;table-layout:fixed}.individual-agent-table caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.simple-agent-table.individual-agent-table th{position:static;width:55%;white-space:normal;background:transparent;font-size:12px;font-weight:500;color:var(--muted)}.simple-agent-table.individual-agent-table td{text-align:end;white-space:normal;overflow-wrap:anywhere;font-weight:700}.individual-agent-table td small{font-weight:400}
+
+/* Soft accents for each agent and clear metric colors in both themes. */
+.individual-agent-panel{--agent-accent:#5465c8;--agent-soft:#eef0ff;border-top:3px solid var(--agent-accent);box-shadow:0 3px 14px #10204008}
+.individual-agent-panel:nth-child(4n+2){--agent-accent:#16846f;--agent-soft:#e8f7f1}
+.individual-agent-panel:nth-child(4n+3){--agent-accent:#b56625;--agent-soft:#fff2e5}
+.individual-agent-panel:nth-child(4n+4){--agent-accent:#9c4cb0;--agent-soft:#f8ecfc}
+.individual-agent-panel>header{background:var(--agent-soft)}
+.individual-agent-panel h3{color:var(--agent-accent)}
+.individual-agent-panel header span{background:var(--surface);padding:4px 8px;border-radius:20px;border:1px solid var(--line)}
+.individual-agent-table tr:nth-child(1){background:#4b7fff07}
+.individual-agent-table tr:nth-child(2){background:#8263db08}
+.individual-agent-table tr:nth-child(3){background:#16a57b08}
+.individual-agent-table tr:nth-child(4){background:#dc922008}
+.simple-agent-table.individual-agent-table tr:nth-child(1) td{color:#3567ce}
+.simple-agent-table.individual-agent-table tr:nth-child(2) td{color:#7852bc}
+.simple-agent-table.individual-agent-table tr:nth-child(3) td{color:#128154}
+.simple-agent-table.individual-agent-table tr:nth-child(4) td{color:#a56810}
+.individual-agent-table tr:last-child{background:#16a57b0b}
+.individual-agent-table td{font-size:17px;font-variant-numeric:tabular-nums}
+[data-theme=dark] .individual-agent-panel{--agent-accent:#afb8ff;--agent-soft:#282d50}
+[data-theme=dark] .individual-agent-panel:nth-child(4n+2){--agent-accent:#83d9be;--agent-soft:#183d39}
+[data-theme=dark] .individual-agent-panel:nth-child(4n+3){--agent-accent:#ffc18a;--agent-soft:#453326}
+[data-theme=dark] .individual-agent-panel:nth-child(4n+4){--agent-accent:#e5aff5;--agent-soft:#3b2949}
+[data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(1) td{color:#a9c8ff}
+[data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(2) td{color:#cfb6ff}
+[data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(3) td{color:#7ee7ad}
+[data-theme=dark] .simple-agent-table.individual-agent-table tr:nth-child(4) td{color:#ffd18a}
