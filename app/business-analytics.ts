@@ -22,7 +22,7 @@ export function businessAnalytics(orders:any[], expenses:any[], from='', to='') 
  const statuses={delivered:0,otherTransmitted:0,drafts:0,errors:0,cancelled:0,other:0};
  for(const o of selected){if(o.status==='cancelled')statuses.cancelled++;else if(o.tracking&&o.atlasState===17)statuses.delivered++;else if(o.tracking)statuses.otherTransmitted++;else if(o.status==='error')statuses.errors++;else if(o.status==='draft')statuses.drafts++;else statuses.other++}
  const timeline=[...buckets].sort(([a],[b])=>a.localeCompare(b)).map(([date,b])=>{
-  const f=financialReport([],b.orders,b.expenses,[]).total;
+  const f=financialReport([],b.orders,monthly?b.expenses:b.expenses.filter(e=>!e.accountingMonth),[]).total;
   return {date,orders:b.orders.length,delivered:f.delivered,revenue:f.revenue,costs:f.missingCost||f.missingTransport?null:f.totalCosts,net:f.net};
  });
  return {granularity:monthly?'month':'day',start,end,statuses,totalOrders:selected.length,transmitted:statuses.delivered+statuses.otherTransmitted,timeline};
