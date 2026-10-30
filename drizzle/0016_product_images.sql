@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS product_images (sku TEXT PRIMARY KEY, mime TEXT NOT NULL, data BLOB NOT NULL, updated_at TEXT NOT NULL);
