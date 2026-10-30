@@ -30,11 +30,14 @@ with tempfile.TemporaryDirectory() as temp:
   fixture.execute("INSERT INTO products(id,sku,name,stock,cost_cents,sale_cents,created_at) VALUES('p','P','P',10,100,1000,'2026-10-24')")
   fixture.execute("INSERT INTO ad_expenses(id,date,amount_cents,channel,created_at) VALUES('legacy','2026-10-24',1234,'Meta Ads','2026-10-24')")
   fixture.commit();fixture.close()
-  body={'date':'2026-10-24','category':'ads','costType':'variable','productId':'p','memberEmail':'a@test.com','channel':'Meta Ads','amount':'10.01','currency':'USD','exchangeRate':'9.123456','note':'Test','amountCents':1}
+  body={'date':'2026-10-24','category':'ads','costType':'variable','memberEmail':'a@test.com','channel':'Meta Ads','amount':'10.01','currency':'USD','exchangeRate':'9.123456','note':'Test','amountCents':1}
   assert req('/api/expenses',body)[0]==403
   assert req('/api/expenses',body,owner,origin='http://untrusted.test')[0]==403
+  for missing in [None,'',' ']:
+   assert req('/api/expenses',{**body,'memberEmail':missing},owner)[0]==400
   assert req('/api/expenses',body,owner)[0]==201
   rows=req('/api/expenses',cookie=owner)[2]['expenses'];row=next(e for e in rows if e['id']!='legacy')
+  assert row['productId'] is None and row['costType']=='variable'
   assert row['amountCents']==9133 and row['originalAmountCents']==1001 and row['exchangeRateMicros']==9123456 and row['currency']=='USD'
   assert next(e for e in rows if e['id']=='legacy')['currency']=='MAD'
   finance=req('/api/finance',cookie=owner)[2];assert finance['total']['ads']==10367 and finance['total']['net']==-10367
@@ -51,6 +54,14 @@ with tempfile.TemporaryDirectory() as temp:
   assert row['amountCents']==9999 and row['originalAmountCents']==9999 and row['exchangeRateMicros']==1000000
   assert req('/api/expenses',{'action':'delete','id':row['id']},owner)[0]==200
   assert req('/api/finance',cookie=owner)[2]['total']['ads']==1234
+  # Product links from stale clients are ignored; one spend creates one charge.
+  stale={**body,'productId':'missing-product','productIds':['p','q','r'],'costType':'fixed'}
+  assert req('/api/expenses',stale,owner)[0]==201
+  latest=[e for e in req('/api/expenses',cookie=owner)[2]['expenses'] if e['id']!='legacy']
+  assert len(latest)==1 and latest[0]['productId'] is None and latest[0]['costType']=='variable'
+  finance=req('/api/finance',cookie=owner)[2]
+  assert finance['total']['ads']==10367 and finance['products'][0]['ads']==0
+  assert next(m for m in finance['members'] if m['email']=='a@test.com')['ads']==9133
   print('PASS: currency API access, stored conversion, legacy DH, totals, edit, invalid inputs and deletion')
  finally:
   proc.terminate();proc.wait(timeout=10);log.close()

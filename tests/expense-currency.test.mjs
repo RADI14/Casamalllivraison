@@ -18,10 +18,10 @@ test('currency migration retains legacy totals and ownership',()=>{
  db.exec(readFileSync(new URL('../drizzle/0013_expense_currency.sql',import.meta.url),'utf8'));
  assert.deepEqual({...db.prepare('SELECT * FROM ad_expenses').get()},{id:'legacy',amount_cents:25000,member_email:'a@test.com',product_id:'p',currency:'MAD',original_amount_cents:25000,exchange_rate_micros:1000000});db.close();
 });
-test('converted ads deducted exactly once in DH in product, agent and overall profit',()=>{
+test('converted ads deducted exactly once in DH in agent and overall profit without product attribution',()=>{
  const converted=convertExpense(10,'USD',9.5);
  const report=financialReport([{id:'p',name:'P',stock:1}],[],[{...converted,date:'2026-10-24',category:'ads',costType:'variable',productId:'p',memberEmail:'a@test.com'}],[{email:'a@test.com',name:'A'}]);
  assert.equal(report.total.ads,9500);assert.equal(report.total.net,-9500);
- assert.equal(report.products.find(p=>p.id==='p').ads,9500);
+ assert.equal(report.products.find(p=>p.id==='p').ads,0);assert.equal(report.products.find(p=>p.id==='p').net,0);
  assert.equal(report.members[0].ads,9500);assert.equal(report.adBreakdown[0].ads,9500);
 });
