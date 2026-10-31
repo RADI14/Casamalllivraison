@@ -14,7 +14,7 @@ globalThis.fetch=async(url,options={})=>{
  if(code==='FAIL')return Response.json({success:false},{status:503});
  if(code==='WRONG')return Response.json({success:true,data:{code:'other',stateId:17}});
  if(code==='PARTIAL')return Response.json({success:true,data:{code,stateId:1,stateName:'Nouveau'}});
- if(code==='RACE'){const db=new DatabaseSync(process.env.SQLITE_PATH);db.prepare("UPDATE orders SET status='cancelled',updated_at='2026-10-18T18:00:00Z' WHERE tracking='RACE'").run();db.close()}
+ if(code==='RACE'){const db=new DatabaseSync(process.env.SQLITE_PATH);db.function('audit_actor',()=> 'test-fixture');db.prepare("UPDATE orders SET status='cancelled',updated_at='2026-10-18T18:00:00Z' WHERE tracking='RACE'").run();db.close()}
  return Response.json({success:true,data:{code,stateId:code==='CANCEL'?19:17,stateName:code==='CANCEL'?'Annulée':'Livré',fullname:'Edited in Atlas',phone:'0712345678',phone2:null,address:'New Atlas address',cityId:'rabat',cityName:'Rabat',price:'299.50',product:code==='PRODUCT'?'Changed product':'Press',quantity:3,note:'Atlas note',cfees:'40.00',openpackage:false,createdEmail:'forged@test.com',commissionRate:999}});
 };''')
  env={**os.environ,'SQLITE_PATH':dbfile,'OWNER_EMAIL':'owner@test.com','ADMIN_PASSWORD':password,'ATLAS_API_KEY':'mock-api-key','PORT':'3189','HOSTNAME':'127.0.0.1','NODE_ENV':'production','APP_URL':'http://127.0.0.1:3189'}
@@ -37,7 +37,7 @@ globalThis.fetch=async(url,options={})=>{
   agentpass=secrets.token_urlsafe(24)
   assert req('/api/team',{'action':'create','name':'Agent','email':'a@test.com','password':agentpass},owner)[0]==200
   _,h,_=req('/api/auth/login',{'email':'a@test.com','password':agentpass});agent=h['Set-Cookie'].split(';')[0]
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   payload={'fullname':'Old name','phone':'0612345678','phone2':'0698765432','address':'Original address','cityId':'kenitra','cityName':'Kenitra','product':'Press','quantity':1,'price':199,'note':'','openpackage':True,'atlasSku':'P','stockItems':[{'stockId':'p','quantity':1}]}
   codes=['CANCEL','PRODUCT','FAIL','WRONG','PARTIAL','RACE']+['GOOD-'+str(i) for i in range(19)]
   for i,code in enumerate(codes):fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,stock_released,product_id,unit_cost_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',('order-'+str(i).zfill(3),json.dumps(payload),'cancelled' if i==7 else 'sent',code,'Agent','a@test.com' if i==24 else 'owner@test.com',10,'2026-10-18T12:00:00Z','2026-10-18T12:00:00Z',1,'product-1',5000))

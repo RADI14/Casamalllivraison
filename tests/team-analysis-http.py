@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/team',{'action':'create','name':'Agent','email':'a@test.com','password':agentpass},owner)[0]==200
   _,h,_=req('/api/auth/login',{'email':'a@test.com','password':agentpass});agent=h['Set-Cookie'].split(';')[0]
   assert req('/api/team',{'action':'create','name':'Second agent','email':'b@test.com','password':agentpass},owner)[0]==200
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   def order(code,who,day,price=100,state=17,status='sent'):
    payload={'fullname':'Client','phone':'0612345678','product':'Press','quantity':1,'price':price}
    fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,atlas_state,unit_cost_cents,transport_actual_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(code,json.dumps(payload),status,code,'Agent',who,10,day+'T12:00:00Z',day+'T12:00:00Z',state,5000,2000))

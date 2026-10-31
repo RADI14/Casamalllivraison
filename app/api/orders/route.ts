@@ -1,3 +1,4 @@
+import {audited} from '../../../server/audited-request';
 import {createHash} from 'node:crypto';
 import {duplicateOrders,duplicatePhone} from '../../duplicate-order-rules';
 import {editAtlasOrder} from '../../../server/edit-atlas-order';
@@ -16,7 +17,7 @@ import {cancelAtlasParcel} from '../../atlas-cancel';
 import {desc,eq,and,inArray,gte} from 'drizzle-orm';
 const out=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const photoProducts=await getDb().select({id:products.id,sku:products.sku}).from(products);const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);return out({orders:rows.map(r=>{const {unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),photoSku:photoProducts.find(p=>p.id===r.productId)?.sku,commission:commission(r),...ledger.states.get(r.id),payload:JSON.parse(r.payload)}}),role:actor.role});}
-export async function POST(req:Request){
+async function handlePost(req:Request){
  const user=await getActor();if(!user)return out({error:'Accès non autorisé'},403);
  if(!sameOrigin(req))return out({error:'Origine refusée'},403);
  let b:any;try{b=await req.json()}catch{return out({error:'Requête invalide'},400)}
@@ -86,3 +87,5 @@ async function transmitOrder(id:string,user:Awaited<ReturnType<typeof getActor>>
  const lock=await db.update(orders).set({status:'sending',error:null,updatedAt:new Date().toISOString()}).where(and(eq(orders.id,o.id),inArray(orders.status,['draft','error']))).returning();if(!lock.length)return out({error:'Un envoi est déjà en cours. Actualisez la liste.'},409);
  try{const payload=atlasParcelPayload(p,o.id);const r=await fetch('https://api.atlaslivraison.com/api/external/colis',{method:'POST',headers:{'x-api-key':key,'Content-Type':'application/json','Idempotency-Key':o.id},body:JSON.stringify(payload),signal:AbortSignal.timeout(20000)});const j=await r.json().catch(()=>null) as any;if(!r.ok||!j?.success||!j?.data?.code)throw Error(atlasError(r.status,j,key));await db.update(orders).set({transportActualCents:cents(j.data.cfees),status:'sent',tracking:j.data.code,error:null,updatedAt:new Date().toISOString()}).where(eq(orders.id,o.id));return out({tracking:j.data.code});}catch(e){const error=e instanceof Error?e.message:'Erreur de connexion Atlas';await db.update(orders).set({status:'error',error,updatedAt:new Date().toISOString()}).where(eq(orders.id,o.id));return out({error},502)}
 }
+
+export const POST=audited(handlePost);

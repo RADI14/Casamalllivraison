@@ -46,7 +46,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/auth/logout',{},second)[0]==200
   offline=states()['a@test.com'];assert not offline['online'] and offline['lastSeen'] and offline['startedAt'] is None
   agent=login('a@test.com');assert req('/api/presence',{},agent)[0]==200
-  fixture=sqlite3.connect(dbfile);fixture.execute("UPDATE team_presence SET last_seen=last_seen-120000 WHERE email='a@test.com'");fixture.commit();fixture.close()
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture');fixture.execute("UPDATE team_presence SET last_seen=last_seen-120000 WHERE email='a@test.com'");fixture.commit();fixture.close()
   assert not states()['a@test.com']['online']
   assert req('/api/presence',{},agent)[0]==200
   assert states()['a@test.com']['startedAt']>a['startedAt']

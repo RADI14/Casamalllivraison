@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory() as temp:
   agents={}
   for email in ['a@test.com','b@test.com']:
    status,h,_=req('/api/auth/login',{'email':email,'password':agentpass});assert status==200;cookie=h['Set-Cookie'].split(';')[0];agents[email]=cookie
-   fixture=sqlite3.connect(dbfile);at='2026-10-18T12:00:00.000Z';fixture.execute('INSERT INTO orders(id,payload,created_by,created_email,commission_rate,created_at,updated_at,stock_released) VALUES(?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),json.dumps(draft(email)['payload']),email,email,10,at,at,1));fixture.commit();fixture.close()
+   fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture');at='2026-10-18T12:00:00.000Z';fixture.execute('INSERT INTO orders(id,payload,created_by,created_email,commission_rate,created_at,updated_at,stock_released) VALUES(?,?,?,?,?,?,?,?)',(str(uuid.uuid4()),json.dumps(draft(email)['payload']),email,email,10,at,at,1));fixture.commit();fixture.close()
    assert req('/api/team',cookie=cookie)[0]==403
   for email,cookie in agents.items():
    status,_,data=req('/api/orders',cookie=cookie);rows=json.loads(data)['orders'];assert len(rows)==1 and rows[0]['createdEmail']==email and rows[0]['payload']['price']==199
@@ -68,7 +68,7 @@ with tempfile.TemporaryDirectory() as temp:
   report=json.loads(req('/api/finance',cookie=owner)[2]);assert report['total']['ads']==15000 and len(report['adBreakdown'])==1 and report['adBreakdown'][0]['memberEmail']=='b@test.com' and report['adBreakdown'][0]['productId']==productid
   assert req('/api/expenses',{**edit,'id':'missing'},cookie=owner)[0]==404
   assert req('/api/expenses',{'action':'delete','id':adid},cookie=owner)[0]==200
-  commissiondb=sqlite3.connect(dbfile)
+  commissiondb=sqlite3.connect(dbfile);commissiondb.create_function('audit_actor',0,lambda:'test-fixture')
   commissiondb.execute("UPDATE orders SET status='sent',tracking='COM-'||id,atlas_state=17 WHERE created_email IN ('a@test.com','b@test.com')");commissiondb.commit()
   adminrows=json.loads(req('/api/orders',cookie=owner)[2])['orders'];oa=next(o for o in adminrows if o['createdEmail']=='a@test.com');ob=next(o for o in adminrows if o['createdEmail']=='b@test.com')
   assert oa['commission']==10 and oa['commissionPaymentStatus']=='unpaid' and oa['commissionDueCents']==1000
@@ -94,7 +94,7 @@ with tempfile.TemporaryDirectory() as temp:
    status,_,body=req(recovery,{'email':email});assert status==200 and json.loads(body)=={'ok':True}
    assert 'password' not in body and 'token' not in body
   for _ in range(5):assert req(recovery,{'email':'a@test.com'})[0]==200
-  requestdb=sqlite3.connect(dbfile)
+  requestdb=sqlite3.connect(dbfile);requestdb.create_function('audit_actor',0,lambda:'test-fixture')
   assert requestdb.execute('SELECT COUNT(*) FROM app_password_recovery').fetchone()[0]==1
   assert req('/api/auth/login',{'email':'a@test.com','password':agentpass})[0]==200
   assert req('/api/team',cookie=agents['a@test.com'])[0]==403
@@ -116,7 +116,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/orders',cookie=owner)[0]==403
   for _ in range(11):status,_,_=req('/api/auth/login',{'email':'none@test.com','password':'wrong'})
   assert status==429
-  db=sqlite3.connect(dbfile);assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==2
+  db=sqlite3.connect(dbfile);db.create_function('audit_actor',0,lambda:'test-fixture');assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==2
   assert all(not x[0].startswith(agentpass) for x in db.execute('SELECT password_hash FROM app_credentials'))
   print('PASS: production HTTP login, origin rejection, forged headers, agent isolation, preserved COD amount, account rename/password reset, session revocation, suspension, logout, rate limiting SQLite persistence, admin-reviewed password recovery and scoped individual/bulk order commission payments.')
  finally:p.terminate();p.wait(timeout=15);log.close()

@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/exchange-rate')[0]==403
   assert req('/api/expenses')[0]==403
   quote=req('/api/exchange-rate',cookie=owner);assert quote[0]==200 and quote[2]['rate']==9.5
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   fixture.execute("INSERT INTO members(email,name,active,created_at) VALUES('a@test.com','A',1,'2026-10-24')")
   fixture.execute("INSERT INTO products(id,sku,name,stock,cost_cents,sale_cents,created_at) VALUES('p','P','P',10,100,1000,'2026-10-24')")
   fixture.execute("INSERT INTO ad_expenses(id,date,amount_cents,channel,created_at) VALUES('legacy','2026-10-24',1234,'Meta Ads','2026-10-24')")

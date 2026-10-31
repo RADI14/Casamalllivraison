@@ -25,7 +25,7 @@ with tempfile.TemporaryDirectory() as temp:
   agentpass=secrets.token_urlsafe(24)
   assert req('/api/team',{'action':'create','name':'Agent','email':'a@test.com','password':agentpass},owner)[0]==200
   _,h,_=req('/api/auth/login',{'email':'a@test.com','password':agentpass});agent=h['Set-Cookie'].split(';')[0]
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   payload={'fullname':'Client','phone':'0612345678','address':'Original address','cityId':'kenitra','cityName':'Kenitra','product':'Press','quantity':1,'price':120,'note':''}
   for code in ['ASC','DESC','MSGFAIL','ALLFAIL','WRONG','NEW','DELIVERED','ACTION','RETURN','RECIPIENT','REFUSE','UNKNOWN','RACE','AGENT','REPORT','RATE']:
    fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,atlas_state,unit_cost_cents,transport_actual_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(code,json.dumps(payload),'sent',code,'Agent','a@test.com' if code=='AGENT' else 'owner@test.com',10,'2026-10-20T12:00:00Z','2026-10-20T12:00:00Z',12,5000,3000))

@@ -1,6 +1,6 @@
 import sqlite3,pathlib,re,json
 root=pathlib.Path(__file__).resolve().parents[1]
-c=sqlite3.connect(':memory:')
+c=sqlite3.connect(':memory:');c.create_function('audit_actor',0,lambda:'test-fixture')
 for p in sorted((root/'drizzle').glob('*.sql')):c.executescript(p.read_text())
 source=(root/'app/api/orders/route.ts').read_text()
 queries=re.findall(r"\.prepare\((?:'([^']*)'|`([^`]*)`)\)",source)

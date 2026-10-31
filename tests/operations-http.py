@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/operations',cookie=agent)[0]==403
   assert req('/api/operations/statement?email=a@test.com&format=print',cookie=agent)[0]==403
   now=datetime.now(timezone.utc).isoformat();today=req('/api/operations',cookie=owner)[2]['period']['to']
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   fixture.execute("INSERT INTO products(id,sku,name,stock,cost_cents,sale_cents,created_at) VALUES('p','TEST','Stock product',100,2000,19900,?)",(now,))
   payload={'fullname':'=Client <script>','phone':'0612345678','phone2':'','address':'10 rue des fleurs Kenitra','cityName':'Kenitra','cityId':'city','storeId':'','product':'Stock product','quantity':2,'price':200,'note':'','openpackage':False,'change':False,'allowtry':False,'atlasSku':'TEST','stockItems':[{'stockId':'stock-test','quantity':2}]}
   fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,atlas_state,product_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)',('seed',json.dumps(payload),'sent','SEED','Agent','a@test.com',10,now,now,17,'p'));fixture.commit()

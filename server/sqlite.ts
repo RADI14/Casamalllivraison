@@ -1,10 +1,11 @@
+import {auditActor} from './audit-context.ts';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,readFileSync,readdirSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 type Value=string|number|null|Uint8Array;
 export class SqliteDatabase {
  readonly connection:DatabaseSync;
- constructor(path:string){if(path!==':memory:')mkdirSync(dirname(path),{recursive:true});this.connection=new DatabaseSync(path);this.connection.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;');}
+ constructor(path:string){if(path!==':memory:')mkdirSync(dirname(path),{recursive:true});this.connection=new DatabaseSync(path);this.connection.function('audit_actor',()=>auditActor.getStore()??'system');this.connection.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;');}
  prepare(sql:string){return new Prepared(this,sql,[])}
  async batch(statements:Prepared[]){this.connection.exec('BEGIN IMMEDIATE');try{const results=statements.map(s=>s.execute());this.connection.exec('COMMIT');return results}catch(e){this.connection.exec('ROLLBACK');throw e}}
  migrate(directory:string){const d=this.connection;d.exec('CREATE TABLE IF NOT EXISTS app_migrations(name TEXT PRIMARY KEY)');for(const name of readdirSync(directory).filter(n=>n.endsWith('.sql')).sort()){if(d.prepare('SELECT 1 FROM app_migrations WHERE name=?').get(name))continue;d.exec('BEGIN IMMEDIATE');try{d.exec(readFileSync(resolve(directory,name),'utf8'));d.prepare('INSERT INTO app_migrations VALUES (?)').run(name);d.exec('COMMIT')}catch(e){d.exec('ROLLBACK');throw e}}d.exec(`CREATE TABLE IF NOT EXISTS app_credentials(email TEXT PRIMARY KEY REFERENCES members(email) ON UPDATE CASCADE ON DELETE CASCADE,password_hash TEXT NOT NULL);

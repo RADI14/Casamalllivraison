@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/team',{**remove,'email':'owner@test.com'},owner)[0]==400
   assert req('/api/team',{**remove,'name':'Stale'},owner)[0]==409
   assert req('/api/orders',cookie=agent)[0]==200
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   fixture.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,atlas_state,unit_cost_cents,transport_actual_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',('history',json.dumps({'fullname':'Demo','product':'Demo','quantity':1,'price':100}),'sent','AT-HISTORY','Agent','a@test.com',10,'2026-10-23T10:00:00Z','2026-10-23T10:00:00Z',17,2000,1000))
   fixture.execute('INSERT INTO ad_expenses(id,member_email,date,amount_cents,channel,created_at) VALUES(?,?,?,?,?,?)',('ads','a@test.com','2026-10-23',500,'Meta Ads','2026-10-23T10:00:00Z'));fixture.commit();fixture.close()
   finance_before=req('/api/finance?view=dashboard',cookie=owner)[2]['total']

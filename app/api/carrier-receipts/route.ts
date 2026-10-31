@@ -1,9 +1,10 @@
+import {audited} from '../../../server/audited-request';
 import {getActor} from '../../access';
 import {getSqlite} from '../../../server/sqlite';
 import {sameOrigin} from '../../../server/request-origin';
 import {cents} from '../../finance-rules';
 import {validDay,moroccoDay} from '../../team-statistics';
-export async function POST(req:Request){
+async function handlePost(req:Request){
  const actor=await getActor();if(actor?.role!=='admin')return Response.json({error:'Accès administrateur requis'},{status:403});
  if(!sameOrigin(req))return Response.json({error:'Origine refusée'},{status:403});
  const b:any=await req.json().catch(()=>null),db=getSqlite().connection,now=new Date().toISOString();
@@ -16,3 +17,5 @@ export async function POST(req:Request){
  try{db.prepare('INSERT INTO carrier_receipts(id,reference,amount_cents,received_on,note,created_by,created_at) VALUES(?,?,?,?,?,?,?)').run(b.id,ref,amount,b.date,b.note,actor.email,now)}catch(e){if(String(e).includes('UNIQUE'))return Response.json({error:'Cette référence existe déjà. Consultez l’historique.'},{status:409});throw e}
  return Response.json({ok:true},{status:201});
 }
+
+export const POST=audited(handlePost);

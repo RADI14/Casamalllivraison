@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as temp:
    time.sleep(.2)
   else:raise RuntimeError('health timed out')
   status,h,_=req('/api/auth/login',{'email':'owner@test.com','password':password});assert status==200;owner=h['Set-Cookie'].split(';')[0]
-  fixture=sqlite3.connect(dbfile)
+  fixture=sqlite3.connect(dbfile);fixture.create_function('audit_actor',0,lambda:'test-fixture')
   fixture.execute("INSERT INTO members(email,name,active,created_at) VALUES('a@test.com','A',1,'2026-10-25'),('b@test.com','B',1,'2026-10-25')")
   fixture.execute("INSERT INTO products(id,sku,name,stock,cost_cents,sale_cents,created_at) VALUES('p','P','P',10,4000,99900,'2026-10-25')")
   for oid,email,code,cost in [('a','a@test.com','AT-A',4000),('b','b@test.com','AT-B',3000),('pending','a@test.com','AT-P',4000)]:

@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/team-trends?to=2026-10-23',cookie=agent)[0]==403
   for day in ['2026-02-30','2026-10-23x','2099-01-01']:
    assert req('/api/team-trends?to='+day,cookie=owner)[0]==400
-  db=sqlite3.connect(temp+'/test.sqlite')
+  db=sqlite3.connect(temp+'/test.sqlite');db.create_function('audit_actor',0,lambda:'test-fixture')
   payload=json.dumps({'price':100,'quantity':1})
   db.execute('INSERT INTO orders(id,payload,status,tracking,created_by,created_email,commission_rate,created_at,updated_at,atlas_state,unit_cost_cents,transport_actual_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',('demo',payload,'sent','AT-DEMO','Amal','a@test.com',10,'2026-10-22T23:30:00Z','2026-10-22T23:30:00Z',17,2000,1000));db.commit();db.close()
   status,h,data=req('/api/team-trends?to=2026-10-23',cookie=owner)
