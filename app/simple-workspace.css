@@ -57,3 +57,13 @@
 .agent-commission-pay-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.agent-commission-pay-row .agent-pay-button{display:inline-flex;align-items:center;gap:5px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}.agent-commission-pay-row .agent-pay-button:disabled{opacity:.45;cursor:default}.agent-commission-pay-row .agent-pay-button:focus-visible{outline:2px solid #8b7cf8;outline-offset:3px}
 
 .commission-order-modal .commission-amount-label{display:grid;gap:8px;margin-block:16px;font-weight:650}.commission-order-modal .commission-amount-input{font-size:30px;font-weight:750;color:var(--ink);width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+
+/* Keep activity details on their own full-width header row. */
+.individual-agent-panel>header{row-gap:4px}
+.individual-agent-panel .individual-agent-heading{display:contents}
+.individual-agent-panel .individual-agent-heading>h3{grid-column:1;grid-row:1}
+.individual-agent-panel header .individual-agent-heading>.member-presence{display:contents}
+.individual-agent-panel header .individual-agent-heading>.member-presence>span{grid-column:1;grid-row:2;min-width:0}
+.individual-agent-panel header .individual-agent-heading>.member-presence>small{grid-column:1/-1;grid-row:3;display:block;white-space:nowrap;line-height:1.5;margin-top:2px;min-width:0}
+.individual-agent-panel header .agent-month-ads{grid-column:2;grid-row:1/span 2}
+.individual-agent-panel header .agent-header-actions{grid-column:3;grid-row:1/span 2}
