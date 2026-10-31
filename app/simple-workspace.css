@@ -64,6 +64,6 @@
 .individual-agent-panel .individual-agent-heading>h3{grid-column:1;grid-row:1}
 .individual-agent-panel header .individual-agent-heading>.member-presence{display:contents}
 .individual-agent-panel header .individual-agent-heading>.member-presence>span{grid-column:1;grid-row:2;min-width:0}
-.individual-agent-panel header .individual-agent-heading>.member-presence>small{grid-column:1/-1;grid-row:3;display:block;white-space:nowrap;line-height:1.5;margin-top:2px;min-width:0}
+.individual-agent-panel header .individual-agent-heading>.member-presence>small{grid-column:1/-1;grid-row:3;display:block;white-space:nowrap;text-align:center;line-height:1.5;margin-top:2px;min-width:0}
 .individual-agent-panel header .agent-month-ads{grid-column:2;grid-row:1/span 2}
 .individual-agent-panel header .agent-header-actions{grid-column:3;grid-row:1/span 2}
