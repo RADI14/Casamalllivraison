@@ -17,7 +17,7 @@ globalThis.fetch=async(url,options={})=>{
  if(code==='RACE'){const db=new DatabaseSync(process.env.SQLITE_PATH);db.function('audit_actor',()=> 'test-fixture');db.prepare("UPDATE orders SET status='cancelled',updated_at='2026-10-18T18:00:00Z' WHERE tracking='RACE'").run();db.close()}
  return Response.json({success:true,data:{code,stateId:code==='CANCEL'?19:17,stateName:code==='CANCEL'?'Annulée':'Livré',fullname:'Edited in Atlas',phone:'0712345678',phone2:null,address:'New Atlas address',cityId:'rabat',cityName:'Rabat',price:'299.50',product:code==='PRODUCT'?'Changed product':'Press',quantity:3,note:'Atlas note',cfees:'40.00',openpackage:false,createdEmail:'forged@test.com',commissionRate:999}});
 };''')
- env={**os.environ,'SQLITE_PATH':dbfile,'OWNER_EMAIL':'owner@test.com','ADMIN_PASSWORD':password,'ATLAS_API_KEY':'mock-api-key','PORT':'3189','HOSTNAME':'127.0.0.1','NODE_ENV':'production','APP_URL':'http://127.0.0.1:3189'}
+ env={**os.environ,'SQLITE_PATH':dbfile,'OWNER_EMAIL':'owner@test.com','ADMIN_PASSWORD':password,'ATLAS_AUTO_SYNC':'false','ATLAS_API_KEY':'mock-api-key','PORT':'3189','HOSTNAME':'127.0.0.1','NODE_ENV':'production','APP_URL':'http://127.0.0.1:3189'}
  log=open('/tmp/atlas-order-sync-http.log','w');proc=subprocess.Popen(['node','--import',preload,'.next/standalone/server.js'],cwd=root,env=env,stdout=log,stderr=log);base='http://127.0.0.1:3189'
  def req(path,body=None,cookie='',origin=base):
   headers={'Content-Type':'application/json','Origin':origin}
