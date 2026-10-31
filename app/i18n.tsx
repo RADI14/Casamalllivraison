@@ -2,7 +2,6 @@
 import {createContext,useContext,useEffect,useState} from 'react';
 import {translations} from './translations';
 import './railway-translations';
-import './whatsapp-translations';
 import './expense-translations';
 import './operations-translations';
 export type Language='fr'|'en'|'ar';

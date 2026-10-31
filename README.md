@@ -42,4 +42,4 @@ pnpm run build
 
 Pour lancer localement, définir OWNER_EMAIL, ADMIN_PASSWORD et SQLITE_PATH sur un fichier local durable, puis `pnpm dev` ou `pnpm start`. Ne pas utiliser une copie de la base de production pour les tests.
 
-La branche main conserve la version Cloudflare. Les corrections WhatsApp et de conservation du prix sont incluses dans cette branche Railway.
+La branche main conserve la version Cloudflare. Les corrections de conservation du prix sont incluses dans cette branche Railway.

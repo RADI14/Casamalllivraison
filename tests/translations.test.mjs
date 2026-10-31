@@ -1,5 +1,5 @@
 import '../app/railway-translations.ts';
-import '../app/whatsapp-translations.ts';
+
 import '../app/expense-translations.ts';
 import '../app/analytics-translations.ts';
 import {test} from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import ts from 'typescript';import {translations} from '../app/translations.ts';

@@ -1,6 +1,0 @@
-import {verifySignature} from '../../../../server/whatsapp-rules';
-import {receiveWebhook} from '../../../../server/whatsapp-service';
-export const runtime='nodejs';
-export const dynamic='force-dynamic';
-export async function GET(req:Request){const p=new URL(req.url).searchParams;if(process.env.WHATSAPP_VERIFY_TOKEN&&p.get('hub.mode')==='subscribe'&&p.get('hub.verify_token')===process.env.WHATSAPP_VERIFY_TOKEN)return new Response(p.get('hub.challenge')??'',{headers:{'Cache-Control':'no-store'}});return new Response('Forbidden',{status:403});}
-export async function POST(req:Request){if(!process.env.WHATSAPP_APP_SECRET||!process.env.WHATSAPP_PHONE_NUMBER_ID)return new Response('Not configured',{status:503});if(Number(req.headers.get('content-length')??0)>262144)return new Response('Too large',{status:413});const body=await req.text();if(Buffer.byteLength(body)>262144)return new Response('Too large',{status:413});if(!verifySignature(body,req.headers.get('x-hub-signature-256'),process.env.WHATSAPP_APP_SECRET))return new Response('Forbidden',{status:403});let data:any;try{data=JSON.parse(body);}catch{return new Response('Invalid JSON',{status:400});}try{await receiveWebhook(data);return Response.json({ok:true});}catch{return new Response('Please retry',{status:503});}}
