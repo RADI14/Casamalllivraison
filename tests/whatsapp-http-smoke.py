@@ -35,12 +35,18 @@ with tempfile.TemporaryDirectory() as temp:
   assert req('/api/team',{'action':'create','name':'Agent','email':'agent@test.com','password':agentpass},cookie=owner)[0]==200
   s,h,_=req('/api/auth/login',{'email':'agent@test.com','password':agentpass});assert s==200
   agent=h['Set-Cookie'].split(';')[0]
-  assert req('/api/whatsapp',cookie=agent)[0]==403
-  assert req('/api/whatsapp',{'action':'enroll','orderId':'x','consent':True},cookie=agent)[0]==403
+  assert req('/api/whatsapp',cookie=agent)[0]==200
+  assert req('/api/whatsapp',{'action':'enroll','orderId':'x','consent':True},cookie=agent)[0]==409
   payload={'fulfillmentMode':'normal','fullname':'Test client','phone':'0612345678','phone2':'','address':'10 rue des fleurs Kenitra','cityName':'Kenitra','cityId':'','storeId':'','product':'Test product','quantity':1,'price':199,'note':'','openpackage':False}
   order_id=str(uuid.uuid4());fixture=sqlite3.connect(temp+'/app.sqlite');at='2026-10-18T12:00:00.000Z';fixture.execute('INSERT INTO orders(id,payload,created_by,created_email,created_at,updated_at,stock_released) VALUES(?,?,?,?,?,?,?)',(order_id,json.dumps(payload),'Owner','owner@test.com',at,at,1));fixture.commit();fixture.close()
   s,_,body=req('/api/whatsapp',{'action':'enroll','orderId':order_id,'consent':True},cookie=owner);assert s==200,body
   conversation=json.loads(body)['conversation'];assert conversation['paused']==1
+  assert req('/api/whatsapp?id='+conversation['id'],cookie=agent)[0]==404
+  assert req('/api/whatsapp',{'action':'status','id':conversation['id'],'status':'cancelled'},cookie=agent)[0]==409
+  assert req('/api/whatsapp',{'action':'assign','id':conversation['id'],'email':'agent@test.com'},cookie=owner)[0]==200
+  assert req('/api/whatsapp?id='+conversation['id'],cookie=agent)[0]==200
+  assert req('/api/whatsapp',{'action':'assign','id':conversation['id'],'email':None},cookie=agent)[0]==409
+  assert 'aiMissing' not in json.loads(req('/api/whatsapp',cookie=agent)[2])['connection']
   s,_,body=req('/api/whatsapp',{'action':'send','id':conversation['id'],'kind':'template'},cookie=owner);assert s==409
   assert req('/api/whatsapp',{'action':'status','id':conversation['id'],'status':'confirmed'},cookie=owner)[0]==200
   rows=json.loads(req('/api/orders',cookie=owner)[2])['orders'];assert rows[0]['status']=='draft' and rows[0]['payload']['price']==199

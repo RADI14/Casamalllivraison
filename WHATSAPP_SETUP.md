@@ -1,6 +1,6 @@
 # WhatsApp AI confirmation on Railway
 
-The platform supports official Meta Cloud API messaging for **+212617307262**. A WhatsApp Web login is a browser session, not API credentials. The feature is admin-only and starts in manual mode. No messages are sent unless configured and explicitly enabled.
+The platform supports official Meta Cloud API messaging for **+212617307262**. A WhatsApp Web login is a browser session, not API credentials. The shared inbox is available to the admin and active team members and starts in manual mode. Agents see assigned conversations, or their own orders when unassigned. Only the admin can reassign conversations or check Meta settings. Reassignment pauses AI. No messages are sent unless configured and explicitly enabled.
 
 ## Configure the existing number
 
@@ -51,3 +51,9 @@ Delivery errors/ambiguous send outcomes stop automation. An uncertain provider o
 - `python3 tests/whatsapp-http-smoke.py` after a production build (temporary database and generated local credentials; no real messages)
 
 References: Meta Cloud API / Business App coexistence documentation and OpenAI Responses structured outputs documentation. All provider credentials, billing and template approvals remain external to this repository.
+
+## Team inbox
+
+Open **Confirmation WhatsApp AI** in Fastlivraison. The admin can assign a conversation to an active member, search by customer/product/phone, filter by status or agent, and inspect counts for the loaded conversations (up to 500). Agents access only their permitted conversations, including message history and reply actions. Counts are current conversation states, not daily performance totals. Existing conversations inherit the order creator as assignee. A conversation currently sending cannot be reassigned.
+
+The inbox currently handles existing unsent orders. New unsolicited leads, automatic follow-up scheduling, voice/call handling, automated upsell and direct Atlas dispatch remain outside this module. Use Colis to review and dispatch confirmed orders. Meta and AI credentials must be configured before real messaging.
