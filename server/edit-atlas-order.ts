@@ -1,3 +1,5 @@
+import {canUseStock} from './member-products';
+import {atlasRead,normalizeStocks,stockSelection} from '../app/atlas-stock';
 import {eq,and} from 'drizzle-orm';
 import {getDb} from '../db';
 import {orders} from '../db/schema';
@@ -18,6 +20,9 @@ export async function editAtlasOrder(body:any,user:any){
  try{changes=orderEditChanges(body.changes,saved)}catch(e){return out({error:(e as Error).message},400)}
  if(!Object.keys(changes).length)return out({ok:true});
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'API Atlas non configurée.'},409);
+ if(user.role!=='admin'&&('product' in changes||'quantity' in changes)){
+  try{const stocks=normalizeStocks(await atlasRead(key,'/stocks'));const target=stocks.find(s=>s.name===(changes.product??saved.product)&&canUseStock(user,s.stockId));if(!target)return out({error:'Produit non autorisé ou indisponible.'},403);stockSelection(stocks,target.stockId,changes.quantity??saved.quantity)}catch{return out({error:'Produit indisponible ou quantité insuffisante.'},409)}
+ }
  const token=crypto.randomUUID();
  const lock=sqlite.prepare('INSERT INTO order_edit_locks(order_id,token,expires_at) VALUES(?,?,?) ON CONFLICT(order_id) DO UPDATE SET token=excluded.token,expires_at=excluded.expires_at WHERE order_edit_locks.expires_at<?').run(o.id,token,Date.now()+120000,Date.now());
  if(!lock.changes)return out({error:'Une modification est déjà en cours. Réessayez dans quelques instants.'},409);

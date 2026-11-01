@@ -1,3 +1,4 @@
+import {canUseStock} from '../../../server/member-products';
 import {audited} from '../../../server/audited-request';
 import {createHash} from 'node:crypto';
 import {duplicateOrders,duplicatePhone} from '../../duplicate-order-rules';
@@ -35,6 +36,7 @@ async function handlePost(req:Request){
  if(raw.fulfillmentMode!==undefined&&raw.fulfillmentMode!=='stock')return out({error:'Invalid parcel type.'},400);
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'Connect Atlas to load your stock.'},409);
  try{
+ if(!canUseStock(user,raw.atlasStockId))return out({error:'Produit non autorisé pour ce compte.'},403);
  const stock=stockSelection(normalizeStocks(await atlasRead(key,'/stocks')),raw.atlasStockId,p.quantity);
  p.product=stock.name;p.stockItems=[{stockId:stock.stockId,quantity:p.quantity}];p.atlasSku=stock.sku;
  const recent=await db.select().from(orders).where(gte(orders.createdAt,new Date(Date.now()-7*86400000).toISOString()));
@@ -83,7 +85,7 @@ async function transmitOrder(id:string,user:Awaited<ReturnType<typeof getActor>>
  const db=getDb();
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'API Atlas non configurée. La commande reste enregistrée.'},409);
  const [o]=await db.select().from(orders).where(eq(orders.id,id));if(!o||!canAccessOrder(user,o))return out({error:'Commande introuvable'},404);if(o.tracking)return out({tracking:o.tracking});
- const p=JSON.parse(o.payload);if(!p.cityId)return out({error:'Cette commande n’a pas de ville Atlas associée. Le rattachement des brouillons sera disponible après connexion Atlas.'},409);
+ const p=JSON.parse(o.payload);if(user.role!=='admin'&&(!Array.isArray(p.stockItems)||!p.stockItems.length||p.stockItems.some((s:any)=>!canUseStock(user,s.stockId))))return out({error:'Produit non autorisé pour ce compte.'},403);if(!p.cityId)return out({error:'Cette commande n’a pas de ville Atlas associée. Le rattachement des brouillons sera disponible après connexion Atlas.'},409);
  const lock=await db.update(orders).set({status:'sending',error:null,updatedAt:new Date().toISOString()}).where(and(eq(orders.id,o.id),inArray(orders.status,['draft','error']))).returning();if(!lock.length)return out({error:'Un envoi est déjà en cours. Actualisez la liste.'},409);
  try{const payload=atlasParcelPayload(p,o.id);const r=await fetch('https://api.atlaslivraison.com/api/external/colis',{method:'POST',headers:{'x-api-key':key,'Content-Type':'application/json','Idempotency-Key':o.id},body:JSON.stringify(payload),signal:AbortSignal.timeout(20000)});const j=await r.json().catch(()=>null) as any;if(!r.ok||!j?.success||!j?.data?.code)throw Error(atlasError(r.status,j,key));await db.update(orders).set({transportActualCents:cents(j.data.cfees),status:'sent',tracking:j.data.code,error:null,updatedAt:new Date().toISOString()}).where(eq(orders.id,o.id));return out({tracking:j.data.code});}catch(e){const error=e instanceof Error?e.message:'Erreur de connexion Atlas';await db.update(orders).set({status:'error',error,updatedAt:new Date().toISOString()}).where(eq(orders.id,o.id));return out({error},502)}
 }
