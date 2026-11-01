@@ -45,6 +45,9 @@ globalThis.fetch=async(url,options={})=>{
   assert req('/api/atlas?stocksOnly=1',cookie=agent)[2]['stocks']==[]
   assert req('/api/team-products',{'email':'a@test.com','stockIds':['allowed','empty','frozen']},owner)[0]==200
   assert req('/api/team-products',{'email':'a@test.com','stockIds':['wrong']},owner)[0]==400
+  team=req('/api/team',cookie=owner)[2]['members']
+  assert set(next(m for m in team if m['email']=='a@test.com')['authorizedStockIds'])=={'allowed','empty','frozen'}
+  assert req('/api/team',cookie=agent)[0]==403
   for path in ['/api/atlas','/api/atlas?stocksOnly=1']:
    data=req(path,cookie=agent)[2];assert [p['stockId'] for p in data['stocks']]==['allowed'],data
    assert 'available' not in data['stocks'][0] and data['stocks'][0]['inStock'] is True
