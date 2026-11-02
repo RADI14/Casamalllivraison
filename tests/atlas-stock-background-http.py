@@ -29,8 +29,8 @@ with tempfile.TemporaryDirectory() as temp:
     time.sleep(.1)
    assert snapshot()[0]['available']==12
    Path(datafile).write_text(json.dumps([{'stockId':'A','sku':'a','name':'Product A','available':0},{'stockId':'B','sku':'b','name':'Product B','available':7}]))
-   # Wait for the real 30-second scheduler, with no stock endpoint requests.
-   for _ in range(360):
+   # Wait for the shared 60-second stock cache, with no stock endpoint requests.
+   for _ in range(700):
     stocks=snapshot()
     if len(stocks)==2 and stocks[0]['available']==0:break
     time.sleep(.1)
