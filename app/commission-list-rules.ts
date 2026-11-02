@@ -6,5 +6,5 @@ export function deliveredCommissionOrders(orders:any[],members:any[],agent='all'
 }
 export function filterCommissionList(rows:any[],filters:{payment:string;from:string;to:string;query:string}){
  const q=filters.query.trim().toLowerCase();
- return rows.filter(o=>{const day=moroccoDay(o.createdAt);return (filters.payment==='all'||o.commissionPaymentStatus===filters.payment)&&(!filters.from||day>=filters.from)&&(!filters.to||day<=filters.to)&&(!q||[o.tracking,o.payload?.fullname,o.createdBy].join(' ').toLowerCase().includes(q))});
+ return rows.filter(o=>{const day=moroccoDay(o.createdAt);return (filters.payment==='all'||(filters.payment==='outstanding'?o.commissionDueCents>0:o.commissionPaymentStatus===filters.payment))&&(!filters.from||day>=filters.from)&&(!filters.to||day<=filters.to)&&(!q||[o.tracking,o.payload?.fullname,o.createdBy].join(' ').toLowerCase().includes(q))});
 }

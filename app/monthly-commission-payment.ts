@@ -10,3 +10,8 @@ export function monthlyPayableOrders(rows:any[],email:string,month:string){
   return !!at&&moroccoDay(at).slice(0,7)===month;
  });
 }
+
+/** All remaining earned commissions, independent of creation or delivery month. */
+export function allTimePayableOrders(rows:any[],email:string){
+ return rows.filter(row=>normalizeEmail(row.createdEmail??'')===normalizeEmail(email)&&row.status!=='cancelled'&&row.tracking&&row.atlasState===17&&Number.isSafeInteger(row.commissionDueCents)&&row.commissionDueCents>0);
+}
