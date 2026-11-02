@@ -1,3 +1,4 @@
+import {orderItems} from '../../order-items';
 import {canUseStock} from '../../../server/member-products';
 import {audited} from '../../../server/audited-request';
 import {createHash} from 'node:crypto';
@@ -17,7 +18,7 @@ import {atlasParcelPayload,atlasError} from '../../atlas-request';
 import {cancelAtlasParcel} from '../../atlas-cancel';
 import {desc,eq,and,inArray,gte} from 'drizzle-orm';
 const out=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
-export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const photoProducts=await getDb().select({id:products.id,sku:products.sku}).from(products);const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);return out({orders:rows.map(r=>{const {unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),photoSku:photoProducts.find(p=>p.id===r.productId)?.sku,commission:commission(r),...ledger.states.get(r.id),payload:JSON.parse(r.payload)}}),role:actor.role});}
+export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const photoProducts=await getDb().select({id:products.id,sku:products.sku}).from(products);const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);return out({orders:rows.map(r=>{const {purchaseTotalCents,unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),photoSku:photoProducts.find(p=>p.id===r.productId)?.sku,commission:commission(r),...ledger.states.get(r.id),payload:JSON.parse(r.payload)}}),role:actor.role});}
 async function handlePost(req:Request){
  const user=await getActor();if(!user)return out({error:'Accès non autorisé'},403);
  if(!sameOrigin(req))return out({error:'Origine refusée'},403);
@@ -25,26 +26,28 @@ async function handlePost(req:Request){
  const db=getDb();
  if(b.action==='edit')return editAtlasOrder(b,user);
  if(b.action==='create'){
- const raw=b.payload??{};const p:any=Object.fromEntries(['fullname','phone','address','cityName','cityId','storeId','product','quantity','price','note','openpackage','phone2','change','allowtry'].map(k=>[k,raw[k]]));p.openpackage=raw.openpackage===true;p.change=raw.change===true;p.allowtry=raw.allowtry===true;p.phone2=typeof raw.phone2==='string'?raw.phone2.replace(/\s/g,'').replace(/^\+212/,'0'):'';if(p.phone2&&!/^0[67]\d{8}$/.test(p.phone2))return out({error:'Invalid second phone number.'},400);for(const k of ['fullname','phone','address','cityName','product','note','cityId','storeId'])if(typeof p[k]!=='string'||p[k].length>1000)return out({error:'Champs invalides'},400);
+ const raw=b.payload??{};let items:ReturnType<typeof orderItems>;try{items=orderItems(raw)}catch(e){return out({error:(e as Error).message},400)}const p:any=Object.fromEntries(['fullname','phone','address','cityName','cityId','storeId','product','quantity','price','note','openpackage','phone2','change','allowtry'].map(k=>[k,raw[k]]));p.openpackage=raw.openpackage===true;p.change=raw.change===true;p.allowtry=raw.allowtry===true;p.phone2=typeof raw.phone2==='string'?raw.phone2.replace(/\s/g,'').replace(/^\+212/,'0'):'';if(p.phone2&&!/^0[67]\d{8}$/.test(p.phone2))return out({error:'Invalid second phone number.'},400);for(const k of ['fullname','phone','address','cityName','product','note','cityId','storeId'])if(typeof p[k]!=='string'||p[k].length>1000)return out({error:'Champs invalides'},400);
  p.phone=p.phone.replace(/\s/g,'').replace(/^\+212/,'0');
  if(!p.fullname.trim()||!/^0[67]\d{8}$/.test(p.phone)||p.address.replace(/\s/g,'').length<10||!p.cityName||!p.product.trim()||!Number.isInteger(p.price)||p.price<=0||p.price>1000000||!Number.isInteger(p.quantity)||p.quantity<1||p.quantity>9)return out({error:'Vérifiez le nom, le téléphone 06/07, l’adresse (10 caractères hors espaces), le produit, la quantité et le montant entier en DH.'},400);
  const id=b.requestId??crypto.randomUUID(),now=new Date().toISOString();
  if(typeof id!=='string'||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i).test(id))return out({error:'Invalid request identifier.'},400);
  const [existing]=await db.select().from(orders).where(eq(orders.id,id));
- if(existing){if(existing.createdEmail!==user.email)return out({error:'Commande introuvable'},404);const saved=JSON.parse(existing.payload);if(['fullname','phone','phone2','address','cityId','storeId','quantity','price','note','openpackage','change','allowtry'].some(k=>saved[k]!==p[k])||saved.stockItems?.[0]?.stockId!==raw.atlasStockId)return out({error:'This order was already saved. Open its details before making changes.'},409);const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?200:202)}
+ if(existing){if(existing.createdEmail!==user.email)return out({error:'Commande introuvable'},404);const saved=JSON.parse(existing.payload);if(['fullname','phone','phone2','address','cityId','storeId','quantity','price','note','openpackage','change','allowtry'].some(k=>saved[k]!==p[k])||JSON.stringify(saved.stockItems)!==JSON.stringify(items))return out({error:'This order was already saved. Open its details before making changes.'},409);const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?200:202)}
  if(!p.cityId.trim())return out({error:'Select an Atlas city before saving.'},400);
  if(raw.fulfillmentMode!==undefined&&raw.fulfillmentMode!=='stock')return out({error:'Invalid parcel type.'},400);
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'Connect Atlas to load your stock.'},409);
  try{
- if(!canUseStock(user,raw.atlasStockId))return out({error:'Produit non autorisé pour ce compte.'},403);
- const stock=stockSelection(normalizeStocks(await atlasRead(key,'/stocks')),raw.atlasStockId,p.quantity);
- p.product=stock.name;p.stockItems=[{stockId:stock.stockId,quantity:p.quantity}];p.atlasSku=stock.sku;
+ if(items.some(i=>!canUseStock(user,i.stockId)))return out({error:'Produit non autorisé pour ce compte.'},403);
+ const available=normalizeStocks(await atlasRead(key,'/stocks'));
+ const selected=items.map(i=>({stock:stockSelection(available,i.stockId,i.quantity),quantity:i.quantity}));
+ const stock=selected[0].stock;
+ p.quantity=items.reduce((n,i)=>n+i.quantity,0);p.product=selected.length===1?stock.name:selected.map(i=>i.stock.name+' × '+i.quantity).join(' + ');p.stockItems=items;if(selected.length===1)p.atlasSku=stock.sku;
  const recent=await db.select().from(orders).where(gte(orders.createdAt,new Date(Date.now()-7*86400000).toISOString()));
- const duplicates=duplicateOrders(recent,{phone:p.phone,stockId:stock.stockId,sku:stock.sku,product:stock.name});
- if(duplicates.length){const confirmation=createHash('sha256').update(JSON.stringify([id,user.email,duplicatePhone(p.phone),stock.stockId,duplicates.map(o=>[o.id,o.updatedAt,o.status]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])))])).digest('hex');if(b.allowDuplicate!==true||b.duplicateConfirmation!==confirmation)return out({error:'Possible duplicate order: same phone and product within the last 7 days. Review before sending.',code:'duplicate_order',duplicateConfirmation:confirmation,count:duplicates.length},409)}
+ const duplicates=[...new Map(selected.flatMap(i=>duplicateOrders(recent,{phone:p.phone,stockId:i.stock.stockId,sku:i.stock.sku,product:i.stock.name})).map(o=>[o.id,o])).values()];
+ if(duplicates.length){const confirmation=createHash('sha256').update(JSON.stringify([id,user.email,duplicatePhone(p.phone),items,duplicates.map(o=>[o.id,o.updatedAt,o.status]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])))])).digest('hex');if(b.allowDuplicate!==true||b.duplicateConfirmation!==confirmation)return out({error:'Possible duplicate order: same phone and product within the last 7 days. Review before sending.',code:'duplicate_order',duplicateConfirmation:confirmation,count:duplicates.length},409)}
 
- const [local]=stock.sku?await db.select().from(products).where(eq(products.sku,stock.sku)):[];
- await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,transportEstimateCents:local?.transportCents??null,stockReleased:1}).onConflictDoNothing();
+ const locals=await db.select().from(products);const local=selected.length===1?locals.find(p=>p.sku===stock.sku):undefined;const costs=selected.map(i=>{const p=locals.find(p=>p.sku===i.stock.sku);return p?.costCents==null?null:p.costCents*i.quantity});const purchaseTotalCents=selected.length>1&&costs.every(c=>c!==null)?costs.reduce<number>((n,c)=>n+(c??0),0):null;
+ await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,purchaseTotalCents,transportEstimateCents:local?.transportCents??null,stockReleased:1}).onConflictDoNothing();
  const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?201:202);
  }catch(e){return out({error:e instanceof Error?e.message:'Atlas stock is unavailable. Refresh the connection before creating an order.'},409)}
 

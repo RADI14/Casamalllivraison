@@ -19,7 +19,7 @@ export function atlasOrderSnapshot(saved:Record<string,any>,remote:Record<string
   if(typeof remote[field]==='boolean')payload[field]=remote[field];
   else if(remote[field]===0||remote[field]===1)payload[field]=remote[field]===1;
  }
- const productChanged=payload.product!==saved.product;
+ const productChanged=payload.product!==saved.product||(Array.isArray(saved.stockItems)&&saved.stockItems.length>1&&payload.quantity!==saved.quantity);
  // A changed product description cannot prove the SKU or purchase cost of the new item.
  if(productChanged){delete payload.atlasSku;delete payload.stockItems;}
  else if(Array.isArray(saved.stockItems)&&saved.stockItems.length===1&&payload.quantity!==saved.quantity)payload.stockItems=[{...saved.stockItems[0],quantity:payload.quantity}];

@@ -1,3 +1,4 @@
+import {purchaseCost} from './purchase-cost.ts';
 import {financialReport,transportCost} from './finance-rules.ts';
 import {commissionOrderLedger,type Allocation} from './commission-order-ledger.ts';
 import {moroccoDay,validDay} from './team-statistics.ts';
@@ -21,7 +22,7 @@ export function operationsReport(input:OperationsInput,from='',to='',today=moroc
  const period=operationsPeriod(from,to,today),current=metrics(input,period.from,period.to),previous=metrics(input,period.previousFrom,period.previousTo);
  const visible=input.team.filter(m=>!m.deletedAt),emails=new Set(visible.map(m=>normalizeEmail(m.email)));
  const selected=input.orders.filter(o=>inside(moroccoDay(o.createdAt),period.from,period.to)&&o.status!=='cancelled');
- const missingPurchase=selected.filter(o=>o.tracking&&o.atlasState===17&&o.unitCostCents==null);
+ const missingPurchase=selected.filter(o=>o.tracking&&o.atlasState===17&&purchaseCost(o)===null);
  const missingDelivery=selected.filter(o=>transportCost(o).missing);
  const missingAds=current.members.filter(m=>emails.has(normalizeEmail(m.email))&&m.leads>0&&!m.adsEntries);
  const row=(o:any)=>({id:o.id,tracking:o.tracking??'',agent:o.createdBy,product:JSON.parse(o.payload).product,productId:o.productId,day:moroccoDay(o.createdAt)});
@@ -36,6 +37,6 @@ export function agentStatement(input:OperationsInput,email:string,from='',to='')
  const key=normalizeEmail(person.email),report=financialReport(input.products,input.orders,input.expenses,input.team,from,to),summary=report.members.find(m=>normalizeEmail(m.email)===key)!;
  const {states}=commissionOrderLedger(input.orders,input.payments,input.allocations);
  const selected=input.orders.filter(o=>normalizeEmail(o.createdEmail??'')===key&&inside(moroccoDay(o.createdAt),from,to));
- const rows=selected.map(o=>{const p=JSON.parse(o.payload),fee=transportCost(o),delivered=o.status!=='cancelled'&&o.tracking&&o.atlasState===17,state=states.get(o.id);return {id:o.id,tracking:o.tracking??'',day:moroccoDay(o.createdAt),client:p.fullname??'',product:p.product??'',quantity:p.quantity,status:o.status==='cancelled'?'Annulé':o.atlasStateName??o.status,salesCents:delivered?Math.round(p.price*100):0,deliveryCents:o.status==='cancelled'?0:fee.missing?null:fee.value,purchaseCents:delivered?o.unitCostCents==null?null:o.unitCostCents*p.quantity:0,paidCents:state?.commissionPaidCents??0,dueCents:state?.commissionDueCents??0}});
+ const rows=selected.map(o=>{const p=JSON.parse(o.payload),fee=transportCost(o),delivered=o.status!=='cancelled'&&o.tracking&&o.atlasState===17,state=states.get(o.id);return {id:o.id,tracking:o.tracking??'',day:moroccoDay(o.createdAt),client:p.fullname??'',product:p.product??'',quantity:p.quantity,status:o.status==='cancelled'?'Annulé':o.atlasStateName??o.status,salesCents:delivered?Math.round(p.price*100):0,deliveryCents:o.status==='cancelled'?0:fee.missing?null:fee.value,purchaseCents:delivered?purchaseCost(o)===null?null:purchaseCost(o):0,paidCents:state?.commissionPaidCents??0,dueCents:state?.commissionDueCents??0}});
  return {person:{name:person.name,email:person.email},from,to,summary,rows,allocatedPaidCents:rows.reduce((s,r)=>s+r.paidCents,0),dueCents:rows.reduce((s,r)=>s+r.dueCents,0),payments:input.payments.filter(p=>normalizeEmail(p.memberEmail)===key&&inside(moroccoDay(p.paidAt),from,to)),expenses:input.expenses.filter(e=>normalizeEmail(e.memberEmail??'')===key&&inside(e.date,from,to))};
 }

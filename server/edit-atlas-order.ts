@@ -18,6 +18,7 @@ export async function editAtlasOrder(body:any,user:any){
  if(body.expectedUpdatedAt!==o.updatedAt)return out({error:'La commande a changé. Fermez puis rouvrez ses détails avant de modifier.'},409);
  let changes:Record<string,any>;const saved=JSON.parse(o.payload);
  try{changes=orderEditChanges(body.changes,saved)}catch(e){return out({error:(e as Error).message},400)}
+ if(saved.stockItems?.length>1&&('product' in changes||'quantity' in changes))return out({error:'Les articles d’un colis multi-produits ne peuvent pas être modifiés après transmission.'},409);
  if(!Object.keys(changes).length)return out({ok:true});
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'API Atlas non configurée.'},409);
  if(user.role!=='admin'&&('product' in changes||'quantity' in changes)){
@@ -42,7 +43,7 @@ export async function editAtlasOrder(body:any,user:any){
   let confirmed={...remote,...changes,...(changes.cityId?{cityName,cfees:undefined}:{}),...j.data};
   try{confirmed={...confirmed,...await read()}}catch{/* PATCH acknowledgement is enough; periodic sync retries the detail read. */}
   const snapshot=atlasOrderSnapshot(saved,confirmed),now=new Date().toISOString();
-  const updated=await db.update(orders).set({payload:JSON.stringify(snapshot.payload),status:snapshot.cancelled?'cancelled':'sent',...(snapshot.productChanged?{productId:null,unitCostCents:null}:{}),...(snapshot.transportCents!==null?{transportActualCents:snapshot.transportCents}:changes.cityId?{transportActualCents:null}:{}),atlasState:confirmed.stateId,atlasStateName:snapshot.stateName,syncedAt:now,error:null,updatedAt:now}).where(and(eq(orders.id,o.id),eq(orders.updatedAt,o.updatedAt))).returning({id:orders.id});
+  const updated=await db.update(orders).set({payload:JSON.stringify(snapshot.payload),status:snapshot.cancelled?'cancelled':'sent',...(snapshot.productChanged?{productId:null,unitCostCents:null,purchaseTotalCents:null}:{}),...(snapshot.transportCents!==null?{transportActualCents:snapshot.transportCents}:changes.cityId?{transportActualCents:null}:{}),atlasState:confirmed.stateId,atlasStateName:snapshot.stateName,syncedAt:now,error:null,updatedAt:now}).where(and(eq(orders.id,o.id),eq(orders.updatedAt,o.updatedAt))).returning({id:orders.id});
   if(!updated.length)return out({error:'Atlas a enregistré la modification. Synchronisez pour actualiser la plateforme.'},409);
   return out({ok:true});
  }catch(e){return out({error:(e as Error).message||'Erreur de connexion Atlas. Synchronisez pour vérifier avant de réessayer.'},502)}
