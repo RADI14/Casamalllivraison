@@ -67,3 +67,7 @@
 .individual-agent-panel header .individual-agent-heading>.member-presence>small{grid-column:1/-1;grid-row:3;display:block;white-space:nowrap;text-align:start;line-height:1.5;margin-top:2px;min-width:0}
 .individual-agent-panel header .agent-month-ads{grid-column:2;grid-row:1/span 2}
 .individual-agent-panel header .agent-header-actions{grid-column:3;grid-row:1/span 2}
+
+.atlas-receivable-amount{font-size:2rem;color:var(--text)}
+.atlas-receivable .card-top{flex-wrap:wrap;gap:12px}
+.atlas-receivable h2{display:flex;align-items:center;gap:8px}
