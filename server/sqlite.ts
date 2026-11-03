@@ -1,3 +1,4 @@
+import {reconcileUpsellCommissions} from './reconcile-upsell-commissions';
 import {auditActor} from './audit-context.ts';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,readFileSync,readdirSync} from 'node:fs';
@@ -24,4 +25,4 @@ class Prepared {
  async first(column?:string){const row=this.db.connection.prepare(this.sql).get(...this.args);return column?row?.[column]??null:row??null}
 }
 let database:SqliteDatabase|undefined;
-export function getSqlite(){if(!database){const path=process.env.SQLITE_PATH??(process.env.NODE_ENV==='production'?undefined:'.data/casamall.sqlite');if(!path)throw Error('SQLITE_PATH is required; mount a persistent Railway volume at /data.');database=new SqliteDatabase(path);database.migrate(resolve(process.cwd(),'drizzle'));}return database}
+export function getSqlite(){if(!database){const path=process.env.SQLITE_PATH??(process.env.NODE_ENV==='production'?undefined:'.data/casamall.sqlite');if(!path)throw Error('SQLITE_PATH is required; mount a persistent Railway volume at /data.');database=new SqliteDatabase(path);database.migrate(resolve(process.cwd(),'drizzle'));database.connection.exec('BEGIN IMMEDIATE');try{const result=reconcileUpsellCommissions(database.connection,process.env.ATLAS_API_KEY);database.connection.exec('COMMIT');console.info('[upsell] Historical reconciliation:',JSON.stringify(result))}catch(e){database.connection.exec('ROLLBACK');throw e}}return database}

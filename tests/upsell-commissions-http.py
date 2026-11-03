@@ -48,24 +48,25 @@ with tempfile.TemporaryDirectory() as temp:
    mixed=create([{'stockId':'a','quantity':2},{'stockId':'b','quantity':2}],3)
    assert req('/api/product-commissions',{'sku':'A','upsell':False},owner)[0]==200
    off=create([{'stockId':'a','quantity':3}],4)
-   assert [db.execute('SELECT commission_multiplier FROM orders WHERE id=?',(id,)).fetchone()[0] for id in [old,on,mixed,off]]==[1,3,2,1]
+   assert [db.execute('SELECT commission_multiplier FROM orders WHERE id=?',(id,)).fetchone()[0] for id in [old,on,mixed,off]]==[1,1,1,1]
+   assert req('/api/product-commissions',{'sku':'A','upsell':True},owner)[0]==200
    # Commission is earned only once Atlas confirms delivery.
    assert all(r['commission']==0 for r in req('/api/orders',cookie=agent)[2]['orders'])
    db.execute('UPDATE orders SET atlas_state=17');db.commit()
    results={r['id']:r for r in req('/api/orders',cookie=agent)[2]['orders']}
-   assert [results[id]['commission'] for id in [old,on,mixed,off]]==[10,30,20,10]
-   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==7000
+   assert [results[id]['commission'] for id in [old,on,mixed,off]]==[30,30,20,30]
+   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==11000
    body={'id':str(uuid.uuid4()),'email':'agent@test.com','amountCents':3000,'note':'Mock external payment','orderIds':[on]}
    assert req('/api/commissions',body,owner)[0]==201
    assert req('/api/commissions',body,owner)[0]==201
    results={r['id']:r for r in req('/api/orders',cookie=agent)[2]['orders']}
    assert results[on]['commissionPaymentStatus']=='paid' and results[on]['commissionDueCents']==0
-   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==4000
+   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==8000
    assert db.execute('SELECT COUNT(*) FROM commission_payments').fetchone()[0]==1
    assert req('/api/sync',{},agent)[0]==200
    results={r['id']:r for r in req('/api/orders',cookie=agent)[2]['orders']}
    assert results[on]['commission']==40 and results[on]['commissionDueCents']==1000
    assert db.execute('SELECT commission_multiplier FROM orders WHERE id=?',(on,)).fetchone()[0]==4
-   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==5000
-   print('PASS: Atlas confirmed quantity updates commission while preserving payment history; admin-only per-SKU switch; no fake costs; future-order snapshot; client tamper ignored; mixed quantities; delivered-only earning; idempotent exact upsell payment')
+   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==9000
+   print('PASS: Atlas confirmed quantity updates commission while preserving payment history; admin-only per-SKU switch; no fake costs; historical and new-order recalculation; client tamper ignored; mixed quantities; delivered-only earning; idempotent exact upsell payment')
   finally:proc.terminate();proc.wait(timeout=10)
