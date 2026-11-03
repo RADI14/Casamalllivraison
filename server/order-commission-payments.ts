@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {commissionOrderLedger,type Allocation} from '../app/commission-order-ledger.ts';
 import {commission,normalizeEmail} from '../app/rules.ts';
 import {tokenHash} from './passwords.ts';
-const orderColumns='id,created_email AS createdEmail,created_at AS createdAt,status,tracking,atlas_state AS atlasState,commission_rate AS commissionRate';
+const orderColumns='id,created_email AS createdEmail,created_at AS createdAt,status,tracking,atlas_state AS atlasState,commission_rate AS commissionRate,commission_multiplier AS commissionMultiplier';
 export function loadCommissionLedger(db:DatabaseSync,email?:string){
  const orders=db.prepare('SELECT '+orderColumns+' FROM orders'+(email?' WHERE lower(trim(created_email))=?':'')).all(...(email?[email]:[])) as any[];
  const payments=db.prepare('SELECT id,member_email AS memberEmail,amount_cents AS amountCents,paid_at AS paidAt FROM commission_payments'+(email?' WHERE member_email=?':'')).all(...(email?[email]:[])) as any[];

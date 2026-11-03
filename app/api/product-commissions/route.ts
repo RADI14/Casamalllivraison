@@ -1,0 +1,7 @@
+import {getActor} from '../../access';
+import {getSqlite} from '../../../server/sqlite';
+import {sameOrigin} from '../../../server/request-origin';
+import {audited} from '../../../server/audited-request';
+export async function GET(){if((await getActor())?.role!=='admin')return Response.json({error:'Accès administrateur requis'},{status:403});const rows=getSqlite().connection.prepare('SELECT sku,upsell FROM product_commission_settings ORDER BY sku').all() as {sku:string;upsell:number}[];return Response.json({settings:rows.map(r=>({sku:r.sku,upsell:r.upsell===1}))},{headers:{'Cache-Control':'private, no-store'}});}
+async function handlePost(req:Request){const actor=await getActor();if(actor?.role!=='admin')return Response.json({error:'Accès administrateur requis'},{status:403});if(!sameOrigin(req))return Response.json({error:'Origine refusée'},{status:403});const b:any=await req.json().catch(()=>null);if(!b||typeof b.sku!=='string'||!b.sku.trim()||b.sku.length>80||typeof b.upsell!=='boolean')return Response.json({error:'Champs invalides'},{status:400});getSqlite().connection.prepare('INSERT INTO product_commission_settings(sku,upsell,updated_at,updated_by) VALUES(?,?,?,?) ON CONFLICT(sku) DO UPDATE SET upsell=excluded.upsell,updated_at=excluded.updated_at,updated_by=excluded.updated_by').run(b.sku.trim(),b.upsell?1:0,new Date().toISOString(),actor.email);return Response.json({sku:b.sku.trim(),upsell:b.upsell});}
+export const POST=audited(handlePost);

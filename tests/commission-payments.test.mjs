@@ -21,13 +21,13 @@ test('Atlas corrections retain payment credit without reducing another member’
  const {members,totals}=commissionBalances(team,[delivered,{...delivered,createdEmail:'b@test.com'}],payments);
  assert.equal(members[0].advanceCents,1000);assert.equal(members[0].dueCents,0);assert.equal(totals.dueCents,1000);assert.equal(totals.advanceCents,1000);
 });
-function database(){const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE members(email TEXT PRIMARY KEY); CREATE TABLE orders(created_email TEXT,tracking TEXT,atlas_state INTEGER,commission_rate INTEGER,status TEXT);');db.exec(readFileSync(new URL('../drizzle/0005_stale_vance_astro.sql',import.meta.url),'utf8'));db.exec("INSERT INTO members VALUES('a@test.com'); INSERT INTO orders VALUES(' A@Test.com ','AT1',17,10,'sent'),('a@test.com','AT2',17,10,'sent'),('a@test.com','AT3',17,10,'cancelled'),('a@test.com','AT4',17,0,'sent');");return db}
+function database(){const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE members(email TEXT PRIMARY KEY); CREATE TABLE orders(created_email TEXT,tracking TEXT,atlas_state INTEGER,commission_rate INTEGER,status TEXT,commission_multiplier INTEGER NOT NULL DEFAULT 1);');db.exec(readFileSync(new URL('../drizzle/0005_stale_vance_astro.sql',import.meta.url),'utf8'));db.exec("INSERT INTO members VALUES('a@test.com'); INSERT INTO orders(created_email,tracking,atlas_state,commission_rate,status) VALUES(' A@Test.com ','AT1',17,10,'sent'),('a@test.com','AT2',17,10,'sent'),('a@test.com','AT3',17,10,'cancelled'),('a@test.com','AT4',17,0,'sent');");return db}
 function pay(db,id,amount,email='a@test.com'){return Number(db.prepare(recordCommissionPaymentSQL).run(id,amount,'2026-10-16T00:00:00Z','owner@test.com','External payment',email,amount).changes)}
 test('atomic ledger blocks retries, distinct duplicate IDs and stale balances without clearing earnings',()=>{
  const db=database();assert.equal(pay(db,'payment-1',2000),1);assert.equal(pay(db,'payment-1',2000),0);assert.equal(pay(db,'payment-2',2000),0);
  assert.equal(db.prepare('SELECT COUNT(*) n FROM commission_payments').get().n,1);
  assert.equal(db.prepare('SELECT COUNT(*) n FROM orders').get().n,4);
- db.exec("INSERT INTO orders VALUES('a@test.com','AT5',17,10,'sent')");
+ db.exec("INSERT INTO orders(created_email,tracking,atlas_state,commission_rate,status) VALUES('a@test.com','AT5',17,10,'sent')");
  assert.equal(pay(db,'payment-3',2000),0);assert.equal(pay(db,'payment-3',1000),1);assert.equal(pay(db,'unknown',1000,'unknown@test.com'),0);db.close();
 });
 test('stale partial balances cannot be recorded and a paid status correction blocks overpayment',()=>{
@@ -37,3 +37,5 @@ test('commission endpoints scope agent data and reserve settlement writes for ad
  const source=readFileSync(new URL('../app/api/commissions/route.ts',import.meta.url),'utf8');
  assert.match(source,/orders\)\.where\(orderScope\(a\)\)/);assert.match(source,/eq\(members.email,a.email\)/);assert.match(source,/eq\(commissionPayments.memberEmail,a.email\)/);assert.match(source,/a\?\.role!=='admin'/);assert.match(source,/!sameOrigin\(req\)/);
 });
+
+test('atomic SQL balance includes upsell multipliers',()=>{const db=database();db.exec("UPDATE orders SET commission_multiplier=3 WHERE tracking='AT1'");assert.equal(pay(db,'wrong-flat',2000),0);assert.equal(pay(db,'upsell',4000),1);db.close()});

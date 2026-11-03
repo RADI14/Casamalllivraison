@@ -1,3 +1,4 @@
+import {upsellCommissionMultiplier} from '../../upsell-commission';
 import {orderItems} from '../../order-items';
 import {canUseStock} from '../../../server/member-products';
 import {audited} from '../../../server/audited-request';
@@ -47,7 +48,8 @@ async function handlePost(req:Request){
  if(duplicates.length){const confirmation=createHash('sha256').update(JSON.stringify([id,user.email,duplicatePhone(p.phone),items,duplicates.map(o=>[o.id,o.updatedAt,o.status]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])))])).digest('hex');if(b.allowDuplicate!==true||b.duplicateConfirmation!==confirmation)return out({error:'Possible duplicate order: same phone and product within the last 7 days. Review before sending.',code:'duplicate_order',duplicateConfirmation:confirmation,count:duplicates.length},409)}
 
  const locals=await db.select().from(products);const local=selected.length===1?locals.find(p=>p.sku===stock.sku):undefined;const costs=selected.map(i=>{const p=locals.find(p=>p.sku===i.stock.sku);return p?.costCents==null?null:p.costCents*i.quantity});const purchaseTotalCents=selected.length>1&&costs.every(c=>c!==null)?costs.reduce<number>((n,c)=>n+(c??0),0):null;
- await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,purchaseTotalCents,transportEstimateCents:local?.transportCents??null,stockReleased:1}).onConflictDoNothing();
+ const upsellSkus=new Set((getSqlite().connection.prepare('SELECT sku FROM product_commission_settings WHERE upsell=1').all() as {sku:string}[]).map(r=>r.sku));const commissionUpsellStockIds=selected.filter(i=>upsellSkus.has(i.stock.sku)).map(i=>i.stock.stockId);
+ await db.insert(orders).values({id,payload:JSON.stringify(p),createdBy:user.displayName,createdEmail:user.email,commissionRate:user.role==='agent'?10:0,commissionMultiplier:upsellCommissionMultiplier(p,commissionUpsellStockIds),commissionUpsellStockIds:JSON.stringify(commissionUpsellStockIds),createdAt:now,updatedAt:now,productId:local?.id??null,unitCostCents:local?.costCents??null,purchaseTotalCents,transportEstimateCents:local?.transportCents??null,stockReleased:1}).onConflictDoNothing();
  const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?201:202);
  }catch(e){return out({error:e instanceof Error?e.message:'Atlas stock is unavailable. Refresh the connection before creating an order.'},409)}
 
