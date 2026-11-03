@@ -3,6 +3,6 @@ export function commissionBalances(team:any[],orders:any[],payments:any[]){const
 export const recordCommissionPaymentSQL=`INSERT INTO commission_payments(id,member_email,amount_cents,paid_at,paid_by,note)
  SELECT ?,email,?,?,?,? FROM members
  WHERE email=? AND ?=(
- (SELECT COALESCE(SUM(1000*CASE WHEN commission_multiplier BETWEEN 1 AND 9 THEN commission_multiplier ELSE 1 END),0) FROM orders WHERE lower(trim(created_email))=members.email AND tracking IS NOT NULL AND tracking<>'' AND atlas_state=17 AND commission_rate=10 AND status<>'cancelled')
+ (SELECT COALESCE(SUM(1000*CASE WHEN COALESCE(commission_locked_multiplier,commission_multiplier) BETWEEN 1 AND 9 THEN COALESCE(commission_locked_multiplier,commission_multiplier) ELSE 1 END),0) FROM orders WHERE lower(trim(created_email))=members.email AND tracking IS NOT NULL AND tracking<>'' AND atlas_state=17 AND commission_rate=10 AND status<>'cancelled')
  -(SELECT COALESCE(SUM(amount_cents),0) FROM commission_payments WHERE member_email=members.email))
  ON CONFLICT(id) DO NOTHING`;

@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {commissionOrderLedger,type Allocation} from '../app/commission-order-ledger.ts';
 import {commission,normalizeEmail} from '../app/rules.ts';
 import {tokenHash} from './passwords.ts';
-const orderColumns='id,created_email AS createdEmail,created_at AS createdAt,status,tracking,atlas_state AS atlasState,commission_rate AS commissionRate,commission_multiplier AS commissionMultiplier';
+const orderColumns='id,created_email AS createdEmail,created_at AS createdAt,status,tracking,atlas_state AS atlasState,commission_rate AS commissionRate,commission_multiplier AS commissionMultiplier,commission_locked_multiplier AS commissionLockedMultiplier';
 export function loadCommissionLedger(db:DatabaseSync,email?:string){
  const orders=db.prepare('SELECT '+orderColumns+' FROM orders'+(email?' WHERE lower(trim(created_email))=?':'')).all(...(email?[email]:[])) as any[];
  const payments=db.prepare('SELECT id,member_email AS memberEmail,amount_cents AS amountCents,paid_at AS paidAt FROM commission_payments'+(email?' WHERE member_email=?':'')).all(...(email?[email]:[])) as any[];
@@ -30,6 +30,7 @@ export function recordOrderCommissionPayment(db:DatabaseSync,b:PaymentRequest,ac
   for(const a of ledger.planned)if(!a.sourceId)db.prepare('INSERT INTO commission_order_allocations(id,order_id,payment_id,amount_cents,created_at) VALUES(?,?,?,?,?)').run(randomUUID(),a.orderId,a.paymentId,a.amountCents,now);
   db.prepare('INSERT INTO commission_payments(id,member_email,amount_cents,paid_at,paid_by,note,selection_hash) VALUES(?,?,?,?,?,?,?)').run(b.id,email,amount,now,actor,b.note,hash);
   for(const id of ids){const due=ledger.states.get(id)!.commissionDueCents;if(due>0)db.prepare('INSERT INTO commission_order_allocations(id,order_id,payment_id,amount_cents,created_at) VALUES(?,?,?,?,?)').run(randomUUID(),id,b.id,due,now)}
+  for(const id of ids)db.prepare('UPDATE orders SET commission_locked_multiplier=COALESCE(commission_locked_multiplier,commission_multiplier) WHERE id=?').run(id);
   db.exec('COMMIT');return {ok:true,id:b.id,paidOrders:ids.length,amountCents:amount};
  }catch(e){db.exec('ROLLBACK');throw e}
 }

@@ -65,8 +65,8 @@ with tempfile.TemporaryDirectory() as temp:
    assert db.execute('SELECT COUNT(*) FROM commission_payments').fetchone()[0]==1
    assert req('/api/sync',{},agent)[0]==200
    results={r['id']:r for r in req('/api/orders',cookie=agent)[2]['orders']}
-   assert results[on]['commission']==40 and results[on]['commissionDueCents']==1000
+   assert results[on]['commission']==30 and results[on]['commissionDueCents']==0
    assert db.execute('SELECT commission_multiplier FROM orders WHERE id=?',(on,)).fetchone()[0]==4
-   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==9000
-   print('PASS: Atlas confirmed quantity updates commission while preserving payment history; admin-only per-SKU switch; no fake costs; historical and new-order recalculation; client tamper ignored; mixed quantities; delivered-only earning; idempotent exact upsell payment')
+   assert req('/api/commissions',cookie=agent)[2]['totals']['dueCents']==8000
+   print('PASS: paid commission stays locked after Atlas quantity correction; admin-only per-SKU switch; no fake costs; historical and new-order recalculation; client tamper ignored; mixed quantities; delivered-only earning; idempotent exact upsell payment')
   finally:proc.terminate();proc.wait(timeout=10)
