@@ -1,0 +1,21 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync,readdirSync} from 'node:fs';
+import {reconcilePurchaseCosts} from '../server/reconcile-purchase-costs.ts';
+import {purchaseCost} from '../app/purchase-cost.ts';
+test('fill missing saved costs by exact identity, packs and complete mixed parcels, preserving history',()=>{
+ const db=new DatabaseSync(':memory:');db.function('audit_actor',()=> 'test');for(const f of readdirSync(new URL('../drizzle',import.meta.url)).filter(n=>n.endsWith('.sql')).sort())db.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));
+ db.exec("INSERT INTO products(id,sku,name,cost_cents,sale_cents,created_at) VALUES('a','A','Grinder 8',4000,10000,'now'),('b','B','Serum',2000,10000,'now'),('c','C','Ambiguous',5000,10000,'now'),('d','D','Ambiguous',6000,10000,'now')");
+ db.prepare('INSERT INTO atlas_product_catalog VALUES(?,?,?)').run('test',JSON.stringify([{stockId:'a',sku:'A',name:'Grinder 8'},{stockId:'b',sku:'B',name:'Serum'}]),Date.now());
+ const add=(id,p,productId=null,cost=null,total=null,state=17)=>db.prepare("INSERT INTO orders(id,payload,product_id,unit_cost_cents,purchase_total_cents,created_by,created_at,updated_at,status,tracking,atlas_state) VALUES(?,?,?,?,?,'Test','now','old','sent',?,?)").run(id,JSON.stringify(p),productId,cost,total,id,state);
+ add('id',{quantity:2,product:'Old name'},'a');add('sku',{quantity:3,atlasSku:'B'});add('name',{quantity:1,product:'Serum'});add('pack',{quantity:1,product:'Grinder 8 x2'});add('explicit-pack',{quantity:2,product:'Grinder 8 x2'});
+ add('mixed',{quantity:3,stockItems:[{stockId:'a',quantity:1},{stockId:'b',quantity:2}]});
+ add('old',{quantity:2,product:'Grinder 8'},'a',3000);add('old-total',{quantity:2,product:'Grinder 8'},'a',null,5500);
+ add('ambiguous',{quantity:1,product:'Ambiguous'});add('unknown-sku',{quantity:1,atlasSku:'UNKNOWN',product:'Serum'});add('bad-mixed',{quantity:2,stockItems:[{stockId:'a',quantity:1},{stockId:'unknown',quantity:1}]});add('not-delivered',{quantity:1,atlasSku:'A'},null,null,null,1);
+ const result=reconcilePurchaseCosts(db);assert.equal(result.updated,6);assert.equal(result.remaining,3);
+ const get=id=>db.prepare('SELECT payload,unit_cost_cents AS unitCostCents,purchase_total_cents AS purchaseTotalCents FROM orders WHERE id=?').get(id);
+ assert.equal(purchaseCost(get('id')),8000);assert.equal(purchaseCost(get('sku')),6000);assert.equal(purchaseCost(get('pack')),8000);assert.equal(purchaseCost(get('explicit-pack')),8000);assert.equal(purchaseCost(get('mixed')),8000);
+ assert.equal(purchaseCost(get('old')),6000);assert.equal(purchaseCost(get('old-total')),5500);assert.equal(purchaseCost(get('ambiguous')),null);assert.equal(purchaseCost(get('not-delivered')),null);
+ assert.equal(reconcilePurchaseCosts(db).updated,0);db.close();
+});
