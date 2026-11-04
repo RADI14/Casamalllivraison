@@ -12,3 +12,15 @@ test('history repricing uses SKU, product ID, stock IDs or a unique exact name a
  let ledger=loadCommissionLedger(db);assert.equal(ledger.states.get('partial').commissionDueCents,2500);assert.equal(ledger.states.get('old').commissionDueCents,0);assert.equal(ledger.states.get('old').commissionPaidCents,1000);assert.equal(db.prepare('SELECT SUM(amount_cents) n FROM commission_payments').get().n,1500);
  assert.deepEqual(reconcileUpsellCommissions(db,'key'),{updated:0,unmatched:2});db.exec("UPDATE product_commission_settings SET upsell=0 WHERE sku='A'");assert.equal(reconcileUpsellCommissions(db,'key').updated,4);ledger=loadCommissionLedger(db);assert.equal(ledger.states.get('old').commissionDueCents,0);assert.equal(db.prepare('SELECT SUM(amount_cents) n FROM commission_payments').get().n,1500);assert.equal(db.prepare("SELECT commission_multiplier n FROM orders WHERE id='ambiguous'").get().n,1);db.close();
 });
+
+test('legacy x2 packs earn 20 only for an exact enabled base product, without reopening paid commissions',()=>{
+ const db=new DatabaseSync(':memory:');db.function('audit_actor',()=> 'test');for(const name of readdirSync(new URL('../drizzle',import.meta.url)).filter(n=>n.endsWith('.sql')).sort())db.exec(readFileSync(new URL('../drizzle/'+name,import.meta.url),'utf8'));
+ db.exec("INSERT INTO members(email,name,created_at) VALUES('a@test.com','A','now'); INSERT INTO products(id,sku,name,cost_cents,sale_cents,created_at) VALUES('p','G','Grinder 8 blades',1000,10000,'now'); INSERT INTO product_commission_settings VALUES('G',1,'now','owner');");
+ const add=(id,product,quantity=1)=>db.prepare("INSERT INTO orders(id,payload,created_by,created_email,created_at,updated_at,status,tracking,atlas_state,commission_rate) VALUES(?,?,'A','a@test.com','2026-10-29','old','sent',?,17,10)").run(id,JSON.stringify({product,quantity}),id);
+ add('unpaid','Grinder 8 blades x2');add('paid','Grinder 8 blades x2');add('explicit','Grinder 8 blades x2',2);add('unknown','Unknown x2');add('model','Grinder X2');
+ db.exec("INSERT INTO commission_payments(id,member_email,amount_cents,paid_at,paid_by,note) VALUES('payment','a@test.com',1000,'now','owner',''); INSERT INTO commission_order_allocations(id,order_id,payment_id,amount_cents,created_at) VALUES('alloc','paid','payment',1000,'now');");
+ reconcileUpsellCommissions(db);let ledger=loadCommissionLedger(db);assert.equal(ledger.states.get('unpaid').commissionDueCents,2000);assert.equal(ledger.states.get('paid').commissionDueCents,0);assert.equal(ledger.states.get('explicit').commissionDueCents,2000);assert.equal(ledger.states.get('unknown').commissionDueCents,1000);assert.equal(ledger.states.get('model').commissionDueCents,1000);
+ assert.equal(JSON.parse(db.prepare("SELECT payload FROM orders WHERE id='unpaid'").get().payload).quantity,1);
+ assert.equal(reconcileUpsellCommissions(db).updated,0);
+ db.exec("UPDATE product_commission_settings SET upsell=0");reconcileUpsellCommissions(db);ledger=loadCommissionLedger(db);assert.equal(ledger.states.get('unpaid').commissionDueCents,1000);assert.equal(ledger.states.get('paid').commissionDueCents,0);db.close();
+});

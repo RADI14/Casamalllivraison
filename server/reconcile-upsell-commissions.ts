@@ -1,7 +1,7 @@
 import {loadCommissionLedger} from './order-commission-payments.ts';
 import type {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import {upsellCommissionMultiplier} from '../app/upsell-commission.ts';
+import {upsellCommissionMultiplier,legacyPack} from '../app/upsell-commission.ts';
 /** Reprice history using exact SKU/stock identity; unique exact catalogue names are a legacy fallback. */
 export function reconcileUpsellCommissions(db:DatabaseSync,key?:string){
  const settings=db.prepare('SELECT sku,upsell FROM product_commission_settings').all() as {sku:string;upsell:number}[];
@@ -19,9 +19,10 @@ export function reconcileUpsellCommissions(db:DatabaseSync,key?:string){
  const rows=db.prepare('SELECT id,payload,product_id AS productId,commission_multiplier AS multiplier,commission_upsell_stock_ids AS ids,commission_locked_multiplier AS locked FROM orders WHERE commission_rate=10').all() as any[];
  let updated=0,unmatched=0;const update=db.prepare('UPDATE orders SET commission_multiplier=?,commission_upsell_stock_ids=?,updated_at=? WHERE id=?');
  for(const row of rows){if(paid.has(row.id)||row.locked!==null)continue;let p:any;try{p=JSON.parse(row.payload)}catch{unmatched++;continue}
-  const knownSku=byId.get(row.productId)||p.atlasSku||nameSku(p.product);let ids:string[]=[];
+  const pack=!Array.isArray(p.stockItems)?legacyPack(p.product):null,packSku=pack?nameSku(pack.name):undefined;
+  const knownSku=byId.get(row.productId)||p.atlasSku||nameSku(p.product)||packSku;let ids:string[]=[];
   if(Array.isArray(p.stockItems)&&p.stockItems.length){let valid=true;for(const item of p.stockItems){const sku=byStock.get(item.stockId)||(p.stockItems.length===1?knownSku:undefined);if(!sku){valid=false;break}if(enabled.has(sku))ids.push(item.stockId)}if(!valid){unmatched++;continue}}
-  else if(knownSku){if(enabled.has(knownSku))ids=['@sku:'+knownSku]}
+  else if(knownSku){if(enabled.has(knownSku))ids=[pack&&packSku===knownSku?'@pack:'+pack.quantity+':'+knownSku:'@sku:'+knownSku]}
   else{unmatched++;continue}
   const multiplier=upsellCommissionMultiplier(p,ids),json=JSON.stringify(ids);
   if(multiplier!==row.multiplier||json!==row.ids){update.run(multiplier,json,new Date().toISOString(),row.id);updated++;}
