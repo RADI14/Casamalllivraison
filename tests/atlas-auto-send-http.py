@@ -1,4 +1,5 @@
 """Exercise automatic carrier submission with a temporary DB and a mock Atlas API only."""
+from concurrent.futures import ThreadPoolExecutor
 import os,subprocess,tempfile,time,urllib.request,urllib.error,json,secrets,sqlite3,uuid
 from pathlib import Path
 root=str(Path(__file__).resolve().parent.parent)
@@ -44,6 +45,10 @@ globalThis.fetch=async(url,options={})=>{
   assert req('/api/orders',create(atlasStockId='missing'),owner)[0]==409
   body=create();status,_,result=req('/api/orders',body,owner);assert status==201 and result['tracking'] and not result['pending'],result
   assert req('/api/orders',body,owner)[2]['tracking']==result['tracking']
+  blocked={**create(phone='00212 612345678'), 'allowDuplicate':True,'duplicateConfirmation':'ignored'}
+  status,_,conflict=req('/api/orders',blocked,owner);assert status==409 and conflict['code']=='active_phone_order',conflict
+  status,_,conflict=req('/api/orders',create(phone='0612345681',phone2='0612345678'),owner);assert status==409 and conflict['code']=='active_phone_order'
+  first_id=body['requestId']
   assert req('/api/orders',{**body,'payload':{**body['payload'],'price':299}},owner)[0]==409
   for name in ['Fail once','Ambiguous response']:
    body=create(name);status,_,result=req('/api/orders',body,owner);assert status==202 and result['pending'] and result['id']==body['requestId'],result
@@ -54,6 +59,14 @@ globalThis.fetch=async(url,options={})=>{
   assert len({e['id'] for e in entries})==3
   assert all(e['p']['stockItems']==[{'stockId':'stock-test','quantity':2}] for e in entries)
   assert all(e['p']['importRef']==e['id'] for e in entries)
-  print('PASS: stock-only validation, automatic submission, carrier failure retention, safe retry and idempotent create')
+  with sqlite3.connect(dbfile) as db:
+   db.create_function('audit_actor',0,lambda:'test')
+   db.execute('UPDATE orders SET atlas_state=17 WHERE id=?',(first_id,))
+  assert req('/api/orders',create(),owner)[0]==201
+  with ThreadPoolExecutor(max_workers=2) as pool:
+   concurrent=list(pool.map(lambda _:req('/api/orders',create(phone='0612345682'),owner)[0],range(2)))
+  assert sorted(concurrent)==[201,409],concurrent
+  assert len(Path(calls).read_text().splitlines())==7
+  print('PASS: active phone block, no override, normalized phone, secondary phone, delivery release, concurrent creates, safe retries')
  finally:
   p.terminate();p.wait(timeout=10);log.close()
