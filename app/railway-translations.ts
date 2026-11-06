@@ -76,3 +76,19 @@ Object.assign(translations,{
 Object.assign(translations,{"3 derniers mois": {"fr": "3 derniers mois", "en": "Last 3 months", "ar": "آخر 3 أشهر"}, "Ce mois-ci": {"fr": "Ce mois-ci", "en": "This month", "ar": "هاد الشهر"}, "Toute la période": {"fr": "Toute la période", "en": "All time", "ar": "الفترة كاملة"}, "Choisir la période": {"fr": "Choisir la période", "en": "Choose date range", "ar": "اختيار الفترة"}, "Raccourcis": {"fr": "Raccourcis", "en": "Shortcuts", "ar": "اختيارات سريعة"}, "Mois précédent": {"fr": "Mois précédent", "en": "Previous month", "ar": "الشهر السابق"}, "Mois suivant": {"fr": "Mois suivant", "en": "Next month", "ar": "الشهر الموالي"}, "Cliquez pour choisir la fin": {"fr": "Cliquez pour choisir la fin", "en": "Click to choose the end date", "ar": "اختار تاريخ النهاية"}, "Cliquez pour choisir le début": {"fr": "Cliquez pour choisir le début", "en": "Click to choose the start date", "ar": "اختار تاريخ البداية"}, "Effacer": {"fr": "Effacer", "en": "Clear", "ar": "مسح"}, "Appliquer": {"fr": "Appliquer", "en": "Apply", "ar": "تطبيق"}});
 
 Object.assign(translations,{'Chat & Statut':{fr:'Chat & Statut',en:'Chat & Status',ar:'المناقشة والحالة'}});
+
+Object.assign(translations,{
+ 'Catalogue en cours de chargement. Réessayez dans un instant.':{fr:'Catalogue en cours de chargement. Réessayez dans un instant.',en:'Products are loading. Try again in a moment.',ar:'المنتجات كيتحمّلو. عاود حاول من بعد لحظة.'},
+ 'Catalogue Atlas indisponible. Actualisez les produits.':{fr:'Catalogue Atlas indisponible. Actualisez les produits.',en:'Atlas products are unavailable. Refresh the product list.',ar:'منتجات Atlas ما متوفرينش دابا. حدّث اللائحة.'},
+ 'Actualiser les produits':{fr:'Actualiser les produits',en:'Refresh products',ar:'حدّث المنتجات'},
+ 'Renseignez le nom du destinataire.':{fr:'Renseignez le nom du destinataire.',en:'Enter the recipient’s name.',ar:'دخل اسم الزبون.'},
+ 'Vérifiez le numéro de téléphone (06 ou 07, 10 chiffres).':{fr:'Vérifiez le numéro de téléphone (06 ou 07, 10 chiffres).',en:'Check the phone number: 10 digits starting with 06 or 07.',ar:'تأكّد من رقم الهاتف: 10 أرقام كيبداو بـ06 ولا 07.'},
+ 'Sélectionnez une ville dans la liste Atlas.':{fr:'Sélectionnez une ville dans la liste Atlas.',en:'Select a city from the Atlas list.',ar:'اختار المدينة من لائحة Atlas.'},
+ 'Adresse : saisissez au moins 10 caractères hors espaces.':{fr:'Adresse : saisissez au moins 10 caractères hors espaces.',en:'Enter at least 10 characters in the address, excluding spaces.',ar:'دخل عنوان فيه على الأقل 10 حروف بلا حساب المسافات.'},
+ 'Sélectionnez une boutique Atlas.':{fr:'Sélectionnez une boutique Atlas.',en:'Select an Atlas store.',ar:'اختار المتجر ديال Atlas.'},
+ 'Saisissez le montant COD en dirhams entiers (minimum 1 DH).':{fr:'Saisissez le montant COD en dirhams entiers (minimum 1 DH).',en:'Enter a whole dirham COD amount of at least 1 DH.',ar:'دخل مبلغ الأداء عند التوصيل بالدرهم بلا فاصلة، على الأقل درهم واحد.'},
+ 'Sélectionnez un produit Atlas disponible pour chaque ligne.':{fr:'Sélectionnez un produit Atlas disponible pour chaque ligne.',en:'Select an available Atlas product for each line.',ar:'اختار منتج متوفر فـAtlas لكل سطر.'},
+ 'Vérifiez les quantités : de 1 à 9 pièces au total, selon le stock.':{fr:'Vérifiez les quantités : de 1 à 9 pièces au total, selon le stock.',en:'Check the quantities: 1 to 9 units in total, subject to stock.',ar:'راجع الكمية: من قطعة حتى لـ9 فالمجموع، على حساب الستوك.'},
+});
+
+Object.assign(translations,{'Session expirée. Reconnectez-vous puis réessayez.':{fr:'Session expirée. Reconnectez-vous puis réessayez.',en:'Session expired. Sign in again and retry.',ar:'السّيسيون سالات. عاود دخل للحساب وجرّب.'},'Reconnectez-vous':{fr:'Reconnectez-vous',en:'Sign in again',ar:'عاود دخل للحساب'}});
