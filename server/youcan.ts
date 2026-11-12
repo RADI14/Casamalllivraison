@@ -11,6 +11,12 @@ export async function youcanRequest(token:string,path:string,body?:any){
  if(!r.ok)throw Error('YouCan indisponible ('+r.status+'). Réessayez ou reconnectez le magasin.');return r.json() as Promise<any>;
 }
 export function connection(db:DatabaseSync){const c=db.prepare('SELECT * FROM youcan_connections WHERE store_id=?').get(storeId()) as any;if(!c||c.expires_at<Date.now())throw Error('Connectez ou reconnectez YouCan avant de synchroniser.');return unseal(c.token_cipher,secret())}
+export async function activateYoucan(token:string){
+ for(const event of ['order.created','order.updated','app.uninstalled']){
+ const hook=await youcanRequest(token,'/resthooks/subscribe',{event,target_url:'https://fastlivraison.com/api/youcan/webhook'});
+ if(typeof (hook.data??hook)?.id!=='string')throw Error('Activation des notifications YouCan non confirmée.');
+ }
+}
 const text=(v:any,max=1000)=>typeof v==='string'?v.slice(0,max):'';
 export function orderDraft(o:any){
  const customer=o.customer?.data??o.customer??{},shipping=o.shipping?.data??o.shipping??{},address=shipping.address?.data??shipping.address??customer.address??{};
