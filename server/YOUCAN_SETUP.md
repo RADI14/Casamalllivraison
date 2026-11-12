@@ -1,0 +1,20 @@
+# YouCan integration
+
+The app receives new orders into a separate review inbox; it never transmits a parcel automatically. Admin assigns orders to active members. Members see only their assigned orders. Confirmation uses the existing parcel flow, stock authorization, live inventory, phone uniqueness, and a stable local order ID.
+
+Set server-only Railway variables (never commit values):
+
+- YOUCAN_CLIENT_ID: OAuth client ID of the external app.
+- YOUCAN_CLIENT_SECRET: same app's OAuth secret; also verifies webhook signatures and encrypts access tokens at rest.
+- YOUCAN_STORE_ID: only the intended store's immutable UUID.
+
+App URL and allowed redirect URL: https://fastlivraison.com/api/youcan/callback
+Webhook URL: https://fastlivraison.com/api/youcan/webhook
+
+Minimum app scopes: read-orders, read-products, view-store-info, read-rest-hooks, edit-rest-hooks. Do not enable All scopes. After the merchant installs/opens the external app, the callback verifies its HMAC, freshness, one-use code, and the token's store identity. Tokens stay server-side, encrypted. Missing configuration fails closed.
+
+After connecting, admin opens Commandes site and activates subscriptions for order.created, order.updated, and app.uninstalled. Incoming deliveries are verified against their exact raw bytes and store, deduplicated by store/order ID, and hydrated using the authenticated Orders API. Failed hydration keeps the pending row and returns 503 for provider retries. Admin can retry pending hydration. Converted orders never get overwritten by source updates. Uninstallation removes the token and stops accepting new deliveries.
+
+Expired tokens require reopening the app from YouCan; UI reports disconnection. Refresh-token support is not assumed. Historical backfill is not automatic. No live connection is asserted until actual store installation, subscription activation and a real delivery are verified.
+
+Review variant labels and quantities before confirmation. Only exact unique SKU/name matches without non-default variants are preselected. Packs/options that cannot be matched confidently require manual product/quantity selection. Existing confirmed parcel rules apply.

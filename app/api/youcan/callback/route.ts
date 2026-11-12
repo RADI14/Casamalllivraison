@@ -1,0 +1,21 @@
+import {createHash} from 'node:crypto';
+import {getSqlite} from '../../../../server/sqlite';
+import {secret,storeId,verifyYoucan,seal,youcanRequest} from '../../../../server/youcan';
+const reply=(message:string,status=400)=>new Response(message,{status,headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer','Content-Type':'text/plain; charset=utf-8'}});
+export async function GET(req:Request){
+ if(!secret()||!process.env.YOUCAN_CLIENT_ID||!storeId())return reply('Configuration YouCan en attente dans Fastlivraison.',503);
+ const u=new URL(req.url),p=new URLSearchParams(u.search),signature=p.get('hmac')??'';p.delete('hmac');
+ const timestamp=Number(p.get('timestamp')),code=p.get('code');
+ if(!code||code.length>3000||!Number.isFinite(timestamp)||Math.abs(Date.now()-timestamp*1000)>300000||!verifyYoucan(p.toString(),signature,secret()))return reply('Lien YouCan invalide ou expiré.',403);
+ const db=getSqlite().connection,digest=createHash('sha256').update(code).digest('hex');
+ if(db.prepare('INSERT OR IGNORE INTO youcan_launches VALUES(?,?)').run(digest,Date.now()).changes===0)return reply('Lien déjà utilisé. Ouvrez de nouveau l’application depuis YouCan.',409);
+ db.prepare('DELETE FROM youcan_launches WHERE created_at<?').run(Date.now()-86400000);
+ try{
+ const response=await fetch('https://api.youcan.shop/oauth/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',client_id:process.env.YOUCAN_CLIENT_ID!,client_secret:secret(),code}),signal:AbortSignal.timeout(12000)});
+ const token:any=await response.json();if(!response.ok||typeof token.access_token!=='string')return reply('Autorisation YouCan refusée. Relancez la connexion.',502);
+ const me=await youcanRequest(token.access_token,'/me'),store=me.data??me;
+ if((store.store_id??store.id)!==storeId())return reply('Ce magasin n’est pas autorisé pour cette plateforme.',403);
+ db.prepare('INSERT INTO youcan_connections VALUES(?,?,?,?) ON CONFLICT(store_id) DO UPDATE SET token_cipher=excluded.token_cipher,connected_at=excluded.connected_at,expires_at=excluded.expires_at').run(storeId(),seal(token.access_token,secret()),new Date().toISOString(),Date.now()+Math.min(Number(token.expires_in)||86400,31536000)*1000);
+ return reply('YouCan connecté. Retournez sur Fastlivraison → Commandes site. Les colis seront transmis à Atlas uniquement après confirmation.',200);
+ }catch{return reply('Connexion YouCan temporairement indisponible. Réessayez depuis YouCan.',502)}
+}

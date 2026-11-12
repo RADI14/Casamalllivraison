@@ -40,7 +40,14 @@ async function handlePost(req:Request){
  const raw=b.payload??{};let items:ReturnType<typeof orderItems>;try{items=orderItems(raw)}catch(e){return out({error:(e as Error).message},400)}const p:any=Object.fromEntries(['fullname','phone','address','cityName','cityId','storeId','product','quantity','price','note','openpackage','phone2','change','allowtry'].map(k=>[k,raw[k]]));p.openpackage=raw.openpackage===true;p.change=raw.change===true;p.allowtry=raw.allowtry===true;p.phone2=typeof raw.phone2==='string'?raw.phone2.replace(/\s/g,'').replace(/^(?:\+212|00212|212)/,'0'):'';if(p.phone2&&!/^0[67]\d{8}$/.test(p.phone2))return out({error:'Invalid second phone number.'},400);for(const k of ['fullname','phone','address','cityName','product','note','cityId','storeId'])if(typeof p[k]!=='string'||p[k].length>1000)return out({error:'Champs invalides'},400);
  p.phone=p.phone.replace(/\s/g,'').replace(/^(?:\+212|00212|212)/,'0');
  if(!p.fullname.trim()||!/^0[67]\d{8}$/.test(p.phone)||p.address.replace(/\s/g,'').length<10||!p.cityName||!p.product.trim()||!Number.isInteger(p.price)||p.price<=0||p.price>1000000||!Number.isInteger(p.quantity)||p.quantity<1||p.quantity>9)return out({error:'Vérifiez le nom, le téléphone 06/07, l’adresse (10 caractères hors espaces), le produit, la quantité et le montant entier en DH.'},400);
- const id=b.requestId??crypto.randomUUID(),now=new Date().toISOString();
+ let siteOrder:any=null;
+ if(b.websiteOrderId!==undefined){
+  if(typeof b.websiteOrderId!=='string')return out({error:'Commande site invalide'},400);
+  siteOrder=getSqlite().connection.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(b.websiteOrderId,process.env.YOUCAN_STORE_ID??'');
+  if(!siteOrder||user.role!=='admin'&&siteOrder.assigned_email!==user.email)return out({error:'Commande site introuvable'},404);
+  if(!siteOrder.hydrated||JSON.parse(siteOrder.payload).blocked||JSON.parse(siteOrder.payload).currency!=='MAD')return out({error:'Vérifiez les informations et la devise de la commande site.'},409);
+ }
+ const id=siteOrder?.id??b.requestId??crypto.randomUUID(),now=new Date().toISOString();
  if(typeof id!=='string'||!(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i).test(id))return out({error:'Invalid request identifier.'},400);
  const [existing]=await db.select().from(orders).where(eq(orders.id,id));
  if(existing){if(existing.createdEmail!==user.email)return out({error:'Commande introuvable'},404);const saved=JSON.parse(existing.payload);if(['fullname','phone','phone2','address','cityId','storeId','quantity','price','note','openpackage','change','allowtry'].some(k=>saved[k]!==p[k])||JSON.stringify(saved.stockItems)!==JSON.stringify(items))return out({error:'This order was already saved. Open its details before making changes.'},409);const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?200:202)}
@@ -61,8 +68,10 @@ async function handlePost(req:Request){
  sql.exec('BEGIN IMMEDIATE');
  try{
   if(hasActivePhone(sql,p)){sql.exec('ROLLBACK');return phoneConflict()}
+  if(siteOrder){const current=sql.prepare('SELECT assigned_email,local_order_id FROM youcan_orders WHERE id=?').get(siteOrder.id);if(!current||current.local_order_id||user.role!=='admin'&&current.assigned_email!==user.email){sql.exec('ROLLBACK');return out({error:'Commande site modifiée. Actualisez la liste.'},409)}}
   sql.prepare(`INSERT INTO orders(id,payload,created_by,created_email,commission_rate,commission_multiplier,commission_upsell_stock_ids,created_at,updated_at,product_id,unit_cost_cents,purchase_total_cents,transport_estimate_cents,stock_released)
    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1)`).run(id,JSON.stringify(p),user.displayName,user.email,user.role==='agent'?10:0,upsellCommissionMultiplier(p,commissionUpsellStockIds),JSON.stringify(commissionUpsellStockIds),now,now,local?.id??null,local?.costCents??null,purchaseTotalCents,local?.transportCents??null);
+  if(siteOrder)sql.prepare('UPDATE youcan_orders SET local_order_id=? WHERE id=?').run(id,siteOrder.id);
   sql.exec('COMMIT');
  }catch(e){sql.exec('ROLLBACK');throw e}
 
