@@ -1,6 +1,6 @@
 # YouCan integration
 
-The app receives new orders into a separate review inbox; it never transmits a parcel automatically. Admin assigns orders to active members. Members see only their assigned orders. Confirmation uses the existing parcel flow, stock authorization, live inventory, phone uniqueness, and a stable local order ID.
+The app receives new orders into a separate review inbox; it never transmits a parcel automatically. The Website inbox uses New, Pas de réponse 1–4, Annuler and Confirmer. Confirming a status never creates a parcel. Users select confirmed rows and explicitly send them to Atlas; each row retains its retry-safe local ID. The collaborator picker is hidden; existing member visibility remains restricted to previously assigned orders. Dispatch uses the existing parcel flow, stock authorization, live inventory, phone uniqueness, and a stable local order ID.
 
 Set server-only Railway variables (never commit values):
 
@@ -18,3 +18,5 @@ After connecting, the signed callback activates subscriptions for order.created,
 Expired tokens require reopening the app from YouCan; UI reports disconnection. Refresh-token support is not assumed. Historical backfill is not automatic. No live connection is asserted until actual store installation, subscription activation and a real delivery are verified.
 
 Review variant labels and quantities before confirmation. Only exact unique SKU/name matches without non-default variants are preselected. Packs/options that cannot be matched confidently require manual product/quantity selection. Existing confirmed parcel rules apply.
+
+Website order information can be prepared independently of dispatch. Exact unique SKU/name and city matches can be sent directly; variant offers, ambiguous matches or multiple Atlas stores require manual information review. Upstream changes to an untransmitted order clear its prepared details and reset its review status to New. Converted parcel data remains frozen.

@@ -44,8 +44,18 @@ with tempfile.TemporaryDirectory() as tmp:
    assert 'fake-token' not in db.execute('SELECT token_cipher FROM youcan_connections').fetchone()[0]
   assert req('/api/team-products',{'email':'a@test.com','stockIds':['s']},owner)[0]==200
   body={'action':'create','websiteOrderId':row['id'],'requestId':str(uuid.uuid4()),'payload':{'fullname':'Test','phone':'0612345678','phone2':'','address':'Full test address','cityId':'c','cityName':'City','storeId':'','product':'P','quantity':1,'price':99,'note':'','atlasStockId':'s'}}
-  assert req('/api/orders',body,agent)[0]==201
-  assert req('/api/orders',{**body,'requestId':str(uuid.uuid4())},agent)[0]==200
+  assert req('/api/orders',body,agent)[0]==409
+  for status in ['new','no_reply_1','no_reply_2','no_reply_3','no_reply_4','cancelled']:
+   assert req('/api/youcan',{'action':'status','id':row['id'],'status':status},agent)[0]==200
+   assert req('/api/youcan',{'action':'send','id':row['id']},agent)[0]==409
+  assert req('/api/youcan',{'action':'status','id':row['id'],'status':'invalid'},agent)[0]==400
+  assert req('/api/youcan',{'action':'prepare','id':row['id'],'sourceUpdatedAt':'stale','payload':body['payload']},agent)[0]==409
+  assert req('/api/youcan',{'action':'prepare','id':row['id'],'sourceUpdatedAt':row['source_updated_at'],'payload':body['payload']},agent)[0]==200
+  assert req('/api/youcan',{'action':'status','id':row['id'],'status':'confirmed'},agent)[0]==200
+  with sqlite3.connect(dbfile) as db:assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==0
+  assert req('/api/youcan',{'action':'send','id':row['id']},agent)[0]==201
+  assert req('/api/youcan',{'action':'send','id':row['id']},agent)[0]==200
+  assert req('/api/youcan',{'action':'status','id':row['id'],'status':'cancelled'},agent)[0]==409
   with sqlite3.connect(dbfile) as db:
    assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==1
    assert db.execute('SELECT local_order_id FROM youcan_orders').fetchone()[0]==row['id']
@@ -60,5 +70,5 @@ with tempfile.TemporaryDirectory() as tmp:
   assert req('/api/youcan/webhook',uninstall,headers={'x-youcan-signature':signature})[0]==200
   assert req('/api/youcan',cookie=owner)[2]['connected'] is False
   assert req('/api/youcan/webhook',payload,headers={'x-youcan-signature':sig})[0]==410
-  print('PASS: signed callback and replay, encrypted token, verified webhooks, deduplication, hydration, assignment visibility, no automatic Atlas transmission, one confirmed parcel, uninstall revocation')
+  print('PASS: signed callback and replay, encrypted token, verified webhooks, deduplication, hydration, assignment visibility, no automatic Atlas transmission, persisted statuses, confirmation without dispatch, selected dispatch once, source separation, uninstall revocation')
  finally:p.terminate();p.wait(timeout=10);log.close()
