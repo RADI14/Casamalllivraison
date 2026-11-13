@@ -15,7 +15,7 @@ export async function POST(req:Request){const actor=await getActor();if(!actor)r
  try{
  if(['subscribe','refresh','assign'].includes(b.action)&&actor.role!=='admin')return out({error:'Accès administrateur requis'},403);
  if(b.action==='subscribe'&&actor.role==='admin'){await activateYoucan(connection(db));return out({ok:true})}
- if(b.action==='refresh'&&actor.role==='admin'){const pending=db.prepare('SELECT remote_id FROM youcan_orders WHERE store_id=? AND hydrated=0 AND local_order_id IS NULL LIMIT 10').all(storeId());for(const p of pending)await hydrateYoucan(db,String(p.remote_id));return out({ok:true})}
+ if(b.action==='refresh'&&actor.role==='admin'){const pending=db.prepare("SELECT remote_id FROM youcan_orders WHERE store_id=? AND (hydrated=0 OR COALESCE(json_extract(payload,'$.address'),'')='') AND local_order_id IS NULL AND prepared_payload IS NULL LIMIT 10").all(storeId());for(const p of pending)await hydrateYoucan(db,String(p.remote_id));return out({ok:true})}
  if(typeof b.id!=='string')return out({error:'Commande invalide'},400);
  const row=db.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(b.id,storeId());if(!row||actor.role!=='admin'&&row.assigned_email!==actor.email)return out({error:'Commande introuvable'},404);
  if(b.action==='status'){

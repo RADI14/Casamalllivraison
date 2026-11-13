@@ -18,10 +18,20 @@ export async function activateYoucan(token:string){
  }
 }
 const text=(v:any,max=1000)=>typeof v==='string'?v.slice(0,max):'';
+const unwrap=(value:any)=>value?.data??value;
+function addressText(value:any){
+ const address=unwrap(value);if(typeof address==='string')return text(address).trim();
+ if(!address||typeof address!=='object'||Array.isArray(address))return '';
+ const first=[address.first_line,address.address,address.address1,address.line1].find(v=>typeof v==='string'&&v.trim());
+ const second=[address.second_line,address.address2,address.line2].find(v=>typeof v==='string'&&v.trim());
+ return [first,second].filter(Boolean).map(v=>v.trim()).join(', ').slice(0,1000);
+}
 export function orderDraft(o:any){
- const customer=o.customer?.data??o.customer??{},shipping=o.shipping?.data??o.shipping??{},address=shipping.address?.data??shipping.address??customer.address??{};
+ const customer=unwrap(o.customer)??{},shipping=unwrap(o.shipping)??{};
+ const candidates=[shipping.address,o.shipping_address,customer.address,customer.default_address].map(unwrap);
+ const address=candidates.find(v=>addressText(v))??candidates.find(v=>v&&typeof v==='object'&&!Array.isArray(v))??{};
  const lines=o.variants?.data??o.variants??[];
- return {fullname:text(address.full_name||customer.full_name||[customer.first_name,customer.last_name].filter(Boolean).join(' ')),phone:text(address.phone||customer.phone,40),phone2:'',address:text(typeof address==='string'?address:address.address||address.address1||address.line1),cityName:text(address.city?.name||address.city||customer.city,150),price:Number(o.total)||0,note:text(o.notes),blocked:['cancelled','canceled','refunded','closed'].includes(String(o.status_object?.slug??o.status_new??'').toLowerCase()),currency:text(o.currency||o.customer_currency?.code||'MAD',10),lines:Array.isArray(lines)?lines.slice(0,50).map((line:any)=>({name:text(line.variant?.product?.name||line.product?.name||line.name,200),variant:Object.values(line.variant?.variations??{}).filter(v=>typeof v==='string'&&v!=='default').map(v=>text(v,100)).join(' / '),sku:text(line.variant?.sku||line.sku,100),quantity:Number(line.quantity)||1})):[]};
+ return {fullname:text(address.full_name||[address.first_name,address.last_name].filter(Boolean).join(' ')||customer.full_name||[customer.first_name,customer.last_name].filter(Boolean).join(' ')),phone:text(address.phone||customer.phone,40),phone2:'',address:addressText(address),cityName:text(address.city?.name||address.city||customer.city,150),price:Number(o.total)||0,note:text(o.notes),blocked:['cancelled','canceled','refunded','closed'].includes(String(o.status_object?.slug??o.status_new??'').toLowerCase()),currency:text(o.currency||o.customer_currency?.code||'MAD',10),lines:Array.isArray(lines)?lines.slice(0,50).map((line:any)=>({name:text(line.variant?.product?.name||line.product?.name||line.name,200),variant:Object.values(line.variant?.variations??{}).filter(v=>typeof v==='string'&&v!=='default').map(v=>text(v,100)).join(' / '),sku:text(line.variant?.sku||line.sku,100),quantity:Number(line.quantity)||1})):[]};
 }
 export function receiveYoucan(db:DatabaseSync,o:any,eventAt:string,hydrated=false){
  if(typeof o?.id!=='string'||! /^[a-zA-Z0-9-]{1,100}$/.test(o.id))throw Error('Invalid order ID');
