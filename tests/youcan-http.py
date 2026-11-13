@@ -49,6 +49,12 @@ with tempfile.TemporaryDirectory() as tmp:
   with sqlite3.connect(dbfile) as db:
    assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==1
    assert db.execute('SELECT local_order_id FROM youcan_orders').fetchone()[0]==row['id']
+  assert req('/api/orders',cookie=agent)[2]['orders'][0]['source']=='website'
+  manual={**body,'requestId':str(uuid.uuid4()),'payload':{**body['payload'],'phone':'0698765432','note':'YouCan #pretend'}};del manual['websiteOrderId']
+  assert req('/api/orders',manual,owner)[0]==201
+  sources={o['payload']['phone']:o['source'] for o in req('/api/orders',cookie=owner)[2]['orders']}
+  assert sources=={'0612345678':'website','0698765432':'whatsapp'}
+  assert len(req('/api/orders',cookie=agent)[2]['orders'])==1
   uninstall=json.dumps({'event_name':'app.uninstalled','data':{'store_id':store}})
   signature=hmac.new(key.encode(),uninstall.encode(),hashlib.sha256).hexdigest()
   assert req('/api/youcan/webhook',uninstall,headers={'x-youcan-signature':signature})[0]==200
