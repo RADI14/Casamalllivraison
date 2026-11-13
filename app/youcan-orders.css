@@ -1,0 +1,37 @@
+.shell .website-workflow{border-top:3px solid #8b73d7}
+.shell .website-workflow .card-top{background:linear-gradient(110deg,#f0ebff,#f8faff);border-bottom:1px solid var(--line)}
+.shell .website-workflow .card-top h2>span{background:#e7ddff;color:#603bb0;border-color:#d8c8fb;font-weight:750}
+.shell .website-workflow .website-toolbar{padding:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.shell .website-workflow [data-status]{--website-state:#315fc0;--website-tint:#edf3ff;--website-edge:#bfd0f6}
+.shell .website-workflow [data-status=no_reply_1]{--website-state:#8a6206;--website-tint:#fff8df;--website-edge:#ead38b}
+.shell .website-workflow [data-status=no_reply_2]{--website-state:#a34e15;--website-tint:#fff0e4;--website-edge:#f1c09b}
+.shell .website-workflow [data-status=no_reply_3]{--website-state:#ad3e72;--website-tint:#fff0f7;--website-edge:#ecbad3}
+.shell .website-workflow [data-status=no_reply_4]{--website-state:#7845b4;--website-tint:#f4ecff;--website-edge:#d6bbed}
+.shell .website-workflow [data-status=cancelled]{--website-state:#b2384a;--website-tint:#fff0f2;--website-edge:#efb4bf}
+.shell .website-workflow [data-status=confirmed]{--website-state:#177154;--website-tint:#e8f8f0;--website-edge:#a5d9c4}
+.shell .main .website-workflow :is(.website-status,.website-status-filter){color:var(--website-state);background:var(--website-tint);border:1px solid var(--website-edge);border-radius:9px;padding:10px 12px;font-weight:700;min-height:42px}
+.shell .website-workflow tbody td:first-child{box-shadow:inset 3px 0 var(--website-edge)}
+[dir=rtl] .shell .website-workflow tbody td:first-child{box-shadow:inset -3px 0 var(--website-edge)}
+.shell .website-workflow tbody tr[data-selected=true]{background:#edf9f3}
+.shell .website-workflow input[type=checkbox]{accent-color:#23906b;width:16px;height:16px}
+.shell .main .website-workflow button.website-send{background:#217c5d;border-color:#217c5d;color:#fff;box-shadow:0 3px 9px #217c5d20}
+.shell .main .website-workflow button.website-send:hover{background:#196348}
+.shell .main .website-workflow button.website-information{background:#edf3ff;border-color:#bfd0f6;color:#315fc0}
+.shell .main .website-workflow button.website-information:hover{background:#dfeaff}
+.shell .website-workflow .website-notice{margin:12px 20px;padding:12px 16px;border-radius:9px;background:#e8f8f0;color:#177154;border:1px solid #a5d9c4}
+[data-theme=dark] .shell .website-workflow .card-top{background:linear-gradient(110deg,#30233f,#202b3c)}
+[data-theme=dark] .shell .website-workflow .card-top h2>span{background:#47335f;color:#e1cbff;border-color:#664c83}
+[data-theme=dark] .shell .website-workflow [data-status]{--website-state:#a5c5ff;--website-tint:#223554;--website-edge:#3e5881}
+[data-theme=dark] .shell .website-workflow [data-status=no_reply_1]{--website-state:#f6d982;--website-tint:#40351e;--website-edge:#725e32}
+[data-theme=dark] .shell .website-workflow [data-status=no_reply_2]{--website-state:#ffbb91;--website-tint:#443023;--website-edge:#785038}
+[data-theme=dark] .shell .website-workflow [data-status=no_reply_3]{--website-state:#f8b2d4;--website-tint:#40273b;--website-edge:#75455f}
+[data-theme=dark] .shell .website-workflow [data-status=no_reply_4]{--website-state:#d6b6ff;--website-tint:#372748;--website-edge:#644880}
+[data-theme=dark] .shell .website-workflow [data-status=cancelled]{--website-state:#ffabb8;--website-tint:#452637;--website-edge:#805065}
+[data-theme=dark] .shell .website-workflow [data-status=confirmed]{--website-state:#92e6bd;--website-tint:#1c3d33;--website-edge:#3d7961}
+[data-theme=dark] .shell .website-workflow tbody tr[data-selected=true]{background:#1a372f}
+[data-theme=dark] .shell .main .website-workflow button.website-send{background:#237c5b;border-color:#429d7b;color:#fff}
+[data-theme=dark] .shell .main .website-workflow button.website-send:hover{background:#2b926d}
+[data-theme=dark] .shell .main .website-workflow button.website-information{background:#223554;border-color:#3e5881;color:#a5c5ff}
+[data-theme=dark] .shell .main .website-workflow button.website-information:hover{background:#2b4265}
+[data-theme=dark] .shell .website-workflow .website-notice{background:#1c3d33;color:#92e6bd;border-color:#3d7961}
+@media(max-width:600px){.shell .website-workflow .website-toolbar{padding:14px;gap:10px}.shell .website-workflow .website-toolbar>select,.shell .website-workflow .website-toolbar>button{flex:1;min-width:160px}}
