@@ -37,6 +37,35 @@ export function receiveYoucan(db:DatabaseSync,o:any,eventAt:string,hydrated=fals
  if(typeof o?.id!=='string'||! /^[a-zA-Z0-9-]{1,100}$/.test(o.id))throw Error('Invalid order ID');
  const stamp=typeof o.updated_at==='string'&&Number.isFinite(Date.parse(o.updated_at))?new Date(o.updated_at).toISOString():eventAt;
  const payload=JSON.stringify(orderDraft(o));
- db.prepare(`INSERT INTO youcan_orders(id,store_id,remote_id,reference,payload,source_updated_at,received_at,hydrated) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(store_id,remote_id) DO UPDATE SET review_status=CASE WHEN youcan_orders.payload<>excluded.payload THEN 'new' ELSE youcan_orders.review_status END,prepared_payload=CASE WHEN youcan_orders.payload<>excluded.payload THEN NULL ELSE youcan_orders.prepared_payload END,payload=excluded.payload,reference=excluded.reference,source_updated_at=excluded.source_updated_at,hydrated=excluded.hydrated WHERE youcan_orders.local_order_id IS NULL AND excluded.source_updated_at>=youcan_orders.source_updated_at AND (excluded.hydrated=1 OR youcan_orders.hydrated=0)`).run(randomUUID(),storeId(),o.id,String(o.ref??o.id).slice(0,100),payload,stamp,new Date().toISOString(),hydrated?1:0);
+ db.prepare(`INSERT INTO youcan_orders(id,store_id,remote_id,reference,payload,source_updated_at,received_at,hydrated) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(store_id,remote_id) DO UPDATE SET review_status=CASE WHEN youcan_orders.review_status='cancelled' THEN 'cancelled' WHEN youcan_orders.payload<>excluded.payload THEN 'new' ELSE youcan_orders.review_status END,prepared_payload=CASE WHEN youcan_orders.payload<>excluded.payload THEN NULL ELSE youcan_orders.prepared_payload END,payload=excluded.payload,reference=excluded.reference,source_updated_at=excluded.source_updated_at,hydrated=excluded.hydrated WHERE youcan_orders.local_order_id IS NULL AND excluded.source_updated_at>=youcan_orders.source_updated_at AND (excluded.hydrated=1 OR youcan_orders.hydrated=0)`).run(randomUUID(),storeId(),o.id,String(o.ref??o.id).slice(0,100),payload,stamp,new Date().toISOString(),hydrated?1:0);
 }
-export async function hydrateYoucan(db:DatabaseSync,id:string){const o=await youcanRequest(connection(db),'/orders/'+encodeURIComponent(id)+'?include=customer,variants,shipping');receiveYoucan(db,o.data??o,new Date().toISOString(),true)}
+// Orders retain a SKU snapshot. Read the current variant by its stable ID so
+// orders placed before the merchant configured Atlas SKUs can still be linked.
+export function currentVariantSku(line:any,product:any){
+ const variant=unwrap(line.variant)??{},p=unwrap(product),variants=unwrap(p?.variants);
+ if(!Array.isArray(variants))return '';
+ const byId=variants.filter(v=>typeof variant.id==='string'&&v.id===variant.id);
+ if(byId.length)return byId.length===1?text(byId[0].sku,100).trim():'';
+ const signature=(v:any)=>v&&typeof v==='object'&&!Array.isArray(v)?JSON.stringify(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):'';
+ const wanted=signature(variant.variations);
+ const matches=wanted&&wanted!=='{}'?variants.filter(v=>signature(v.variations)===wanted):[];
+ return matches.length===1?text(matches[0].sku,100).trim():'';
+}
+const productSkuCache=new Map<string,{until:number;value:any}>();
+async function currentProduct(token:string,id:string){
+ const key=storeId()+':'+id,cached=productSkuCache.get(key);if(cached&&cached.until>Date.now())return cached.value;
+ const value=await youcanRequest(token,'/products/'+encodeURIComponent(id)+'?include=variants');
+ if(productSkuCache.size>=100)productSkuCache.delete(productSkuCache.keys().next().value!);
+ productSkuCache.set(key,{until:Date.now()+300000,value});return value;
+}
+export async function hydrateYoucan(db:DatabaseSync,id:string){
+ const token=connection(db),response=await youcanRequest(token,'/orders/'+encodeURIComponent(id)+'?include=customer,variants,shipping'),o=unwrap(response);
+ const lines=unwrap(o.variants);
+ const reads=new Map<string,Promise<any>>();
+ if(Array.isArray(lines))await Promise.all(lines.slice(0,9).map(async line=>{
+  const variant=unwrap(line.variant),productId=unwrap(variant?.product)?.id??variant?.product_id;
+  if(typeof productId!=='string'||! /^[a-zA-Z0-9-]{1,100}$/.test(productId))return;
+  try{if(!reads.has(productId))reads.set(productId,currentProduct(token,productId));const sku=currentVariantSku(line,await reads.get(productId));if(sku&&variant)variant.sku=sku}catch{/* Preserve the order when the product has been removed or cannot be read. */}
+ }));
+ receiveYoucan(db,o,new Date().toISOString(),true);
+}

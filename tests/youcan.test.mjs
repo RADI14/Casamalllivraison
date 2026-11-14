@@ -1,5 +1,5 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {createHmac} from 'node:crypto';import {DatabaseSync} from 'node:sqlite';import {readFileSync} from 'node:fs';
-import {verifyYoucan,seal,unseal,orderDraft,receiveYoucan} from '../server/youcan.ts';
+import {verifyYoucan,seal,unseal,orderDraft,receiveYoucan,currentVariantSku} from '../server/youcan.ts';
 test('signature uses exact raw bytes and constant length validation; tokens authenticated at rest',()=>{const raw='{"a":1}',key='private-test-key',sig=createHmac('sha256',key).update(raw).digest('hex');assert(verifyYoucan(raw,sig,key));for(const input of ['','gg'.repeat(32),'a'.repeat(63)])assert(!verifyYoucan(raw,input,key));assert(!verifyYoucan(raw+' ',sig,key));const sealed=seal('fake-bearer-token',key);assert(!sealed.includes('fake-bearer-token'));assert.equal(unseal(sealed,key),'fake-bearer-token');assert.throws(()=>unseal(sealed,'wrong'));});
 test('order intake deduplicates IDs, orders updates, freezes confirmed data, and preserves assignment',()=>{process.env.YOUCAN_STORE_ID='test-store';const db=new DatabaseSync(':memory:');db.exec(readFileSync(new URL('../drizzle/0027_youcan.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../drizzle/0028_youcan_workflow.sql',import.meta.url),'utf8'));const order={id:'remote',ref:'R1',total:99,currency:'MAD',customer:{first_name:'A',phone:'0612345678'},variants:[{quantity:2,variant:{sku:'S',product:{name:'P'}}}],updated_at:'2026-11-12T12:00:00Z'};receiveYoucan(db,order,order.updated_at,true);let row=db.prepare('SELECT * FROM youcan_orders').get();assert.equal(JSON.parse(row.payload).lines[0].quantity,2);db.prepare("UPDATE youcan_orders SET assigned_email='a@test.com'").run();receiveYoucan(db,{...order,total:88,updated_at:'2026-11-10T12:00:00Z'},order.updated_at,true);assert.equal(JSON.parse(db.prepare('SELECT payload FROM youcan_orders').get().payload).price,99);receiveYoucan(db,order,order.updated_at,false);assert.equal(db.prepare('SELECT hydrated FROM youcan_orders').get().hydrated,1);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM youcan_orders').get().n,1);db.prepare("UPDATE youcan_orders SET local_order_id='converted'").run();receiveYoucan(db,{...order,total:70,updated_at:'2026-11-13T12:00:00Z'},order.updated_at,true);row=db.prepare('SELECT * FROM youcan_orders').get();assert.equal(JSON.parse(row.payload).price,99);assert.equal(row.assigned_email,'a@test.com');assert(orderDraft({status_new:'Cancelled'}).blocked);db.close()});
 
@@ -22,4 +22,29 @@ test('store checkout address in customer.region is recovered only when canonical
  assert.equal(orderDraft({customer:{region:'Rue du test &quot;A&quot;',city:'City'}}).address,'Rue du test "A"');
  assert.equal(orderDraft({customer:{data:{region:'Rue du test &#34;B&#34;'}}}).address,'Rue du test "B"');
  assert.equal(orderDraft({customer:{region:'Region fallback'},shipping:{address:{first_line:'Canonical street'}}}).address,'Canonical street');
+});
+
+test('legacy order SKU snapshots use the exact current variant ID, never another pack or product name',()=>{
+ const line={variant:{id:'variant-one',sku:'old',product:{id:'product-one'}}};
+ const product={data:{variants:{data:[{id:'variant-one',sku:'ATLAS-ONE'},{id:'variant-two',sku:'ATLAS-TWO'}]}}};
+ assert.equal(currentVariantSku(line,product),'ATLAS-ONE');
+ assert.equal(currentVariantSku({variant:{id:'removed'}},product),'');
+ assert.equal(currentVariantSku({variant:{}},product),'');
+ assert.equal(currentVariantSku(line,{variants:[{id:'variant-one',sku:'A'},{id:'variant-one',sku:'B'}]}),'');
+});
+
+test('regenerated variant IDs only recover a unique identical offer within the same product',()=>{
+ const line={variant:{id:'old-id',variations:{Offer:'One',Color:'Black'}}};
+ const variants=[{id:'new-id',sku:'ONE',variations:{Color:'Black',Offer:'One'}},{id:'two-id',sku:'TWO',variations:{Offer:'Two',Color:'Black'}}];
+ assert.equal(currentVariantSku(line,{variants}),'ONE');
+ assert.equal(currentVariantSku(line,{variants:[...variants,variants[0]]}),'');
+ assert.equal(currentVariantSku(line,{variants:[variants[1]]}),'');
+});
+
+test('recovering a legacy SKU does not reopen an order the team cancelled',()=>{
+ const db=new DatabaseSync(':memory:');for(const migration of ['0027_youcan.sql','0028_youcan_workflow.sql'])db.exec(readFileSync(new URL('../drizzle/'+migration,import.meta.url),'utf8'));
+ const o={id:'cancelled-legacy',total:99,variants:[{quantity:1,variant:{sku:'old'}}],updated_at:'2026-11-13T00:00:00Z'};
+ receiveYoucan(db,o,o.updated_at,true);db.exec("UPDATE youcan_orders SET review_status='cancelled'");
+ receiveYoucan(db,{...o,variants:[{quantity:1,variant:{sku:'current'}}]},o.updated_at,true);
+ assert.equal(db.prepare('SELECT review_status FROM youcan_orders').get().review_status,'cancelled');db.close();
 });
