@@ -66,3 +66,9 @@ test('YouCan COD adds exactly one dirham per order from the original total',()=>
  receiveYoucan(db,{...source,total:149,updated_at:'2026-11-14T00:01:00Z'},source.updated_at,true);
  assert.equal(JSON.parse(db.prepare('SELECT payload FROM youcan_orders').get().payload).price,150);db.close();
 });
+
+test('import retains the ordered quantity rather than defaulting invalid values to one',()=>{
+ assert.equal(orderDraft({variants:[{quantity:'3',variant:{variations:{Offer:'Pack 2'}}}]}).lines[0].quantity,3);
+ assert.equal(orderDraft({variants:[{quantity:0}]}).lines[0].quantity,0);
+ assert.equal(orderDraft({variants:[{quantity:-1}]}).lines[0].quantity,-1);
+});
