@@ -1,3 +1,4 @@
+import {reconcileWebsiteDuplicates} from '../../../../server/phone-orders';
 import {getSqlite} from '../../../../server/sqlite';
 import {secret,storeId,verifyYoucan,receiveYoucan,hydrateYoucan} from '../../../../server/youcan';
 export async function POST(req:Request){
@@ -10,5 +11,5 @@ export async function POST(req:Request){
  if(!['order.created','order.updated'].includes(b.event_name))return new Response(null,{status:204});
  if(b.data?.store_id!==storeId())return new Response(null,{status:403});
  const eventAt=Date.parse(b.event_happened_at);if(!Number.isFinite(eventAt))return new Response(null,{status:400});
- try{const db=getSqlite().connection;if(!db.prepare('SELECT 1 FROM youcan_connections WHERE store_id=?').get(storeId()))return new Response(null,{status:410});receiveYoucan(db,b.data,new Date(eventAt).toISOString());await hydrateYoucan(db,b.data.id);return Response.json({ok:true})}catch{return Response.json({error:'Import pending; retry delivery'},{status:503})}
+ try{const db=getSqlite().connection;if(!db.prepare('SELECT 1 FROM youcan_connections WHERE store_id=?').get(storeId()))return new Response(null,{status:410});receiveYoucan(db,b.data,new Date(eventAt).toISOString());await hydrateYoucan(db,b.data.id);reconcileWebsiteDuplicates(db,storeId());return Response.json({ok:true})}catch{return Response.json({error:'Import pending; retry delivery'},{status:503})}
 }

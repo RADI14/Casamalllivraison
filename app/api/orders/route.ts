@@ -2,7 +2,7 @@ import {upsellCommissionMultiplier} from '../../upsell-commission';
 import {orderItems} from '../../order-items';
 import {canUseStock} from '../../../server/member-products';
 import {audited} from '../../../server/audited-request';
-import {duplicatePhone} from '../../duplicate-order-rules';
+import {activePhoneOrder} from '../../../server/phone-orders';
 import {editAtlasOrder} from '../../../server/edit-atlas-order';
 import {loadCommissionLedger} from '../../../server/order-commission-payments';
 import {getSqlite} from '../../../server/sqlite';
@@ -20,15 +20,6 @@ import {desc,eq,and,inArray} from 'drizzle-orm';
 const out=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const photoProducts=await getDb().select({id:products.id,sku:products.sku}).from(products);const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);const websiteIds=new Set(getSqlite().connection.prepare('SELECT local_order_id FROM youcan_orders WHERE local_order_id IS NOT NULL').all().map(r=>String(r.local_order_id)));return out({orders:rows.map(r=>{const {purchaseTotalCents,unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),source:websiteIds.has(r.id)?'website':'whatsapp',photoSku:photoProducts.find(p=>p.id===r.productId)?.sku,commission:commission(r),...ledger.states.get(r.id),payload:JSON.parse(r.payload)}}),role:actor.role});}
 const activePhoneError='This phone number already has an active order. Wait until that order is closed before creating another.';
-function hasActivePhone(db:ReturnType<typeof getSqlite>['connection'],p:{phone:string;phone2?:string}){
- const phones=new Set([duplicatePhone(p.phone),duplicatePhone(p.phone2)].filter(Boolean));
- const active=db.prepare("SELECT payload,atlas_state_name AS state FROM orders WHERE status!='cancelled' AND atlas_state IS NOT 17").all();
- return active.some(o=>{
-  const state=String(o.state??'').trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  if(['livre','livree','delivered','annule','annulee','cancelled','canceled','retourne','retournee','returned'].includes(state))return false;
-  try{const prior=JSON.parse(String(o.payload));return phones.has(duplicatePhone(prior.phone))||phones.has(duplicatePhone(prior.phone2))}catch{return false}
- });
-}
 const phoneConflict=()=>out({error:activePhoneError,code:'active_phone_order'},409);
 async function handlePost(req:Request){
  const user=await getActor();if(!user)return out({error:'Accès non autorisé'},403);
@@ -46,6 +37,7 @@ async function handlePost(req:Request){
   siteOrder=getSqlite().connection.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(b.websiteOrderId,process.env.YOUCAN_STORE_ID??'');
   if(!siteOrder||user.role!=='admin'&&siteOrder.assigned_email!==user.email)return out({error:'Commande site introuvable'},404);
   if(b.expectedWebsiteSourceAt!==undefined&&b.expectedWebsiteSourceAt!==siteOrder.source_updated_at)return out({error:'La commande a changé sur YouCan. Vérifiez-la de nouveau.'},409);
+  if(siteOrder.duplicate_of)return phoneConflict();
   if(siteOrder.review_status!=='confirmed')return out({error:'Confirmez la commande Website avant l’envoi à Atlas.'},409);
   if(!siteOrder.hydrated||JSON.parse(siteOrder.payload).blocked||JSON.parse(siteOrder.payload).currency!=='MAD')return out({error:'Vérifiez les informations et la devise de la commande site.'},409);
  }
@@ -54,7 +46,7 @@ async function handlePost(req:Request){
  const [existing]=await db.select().from(orders).where(eq(orders.id,id));
  if(existing){if(existing.createdEmail!==user.email)return out({error:'Commande introuvable'},404);const saved=JSON.parse(existing.payload);if(['fullname','phone','phone2','address','cityId','storeId','quantity','price','note','openpackage','change','allowtry'].some(k=>saved[k]!==p[k])||JSON.stringify(saved.stockItems)!==JSON.stringify(items))return out({error:'This order was already saved. Open its details before making changes.'},409);const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?200:202)}
  const sql=getSqlite().connection;
- if(hasActivePhone(sql,p))return phoneConflict();
+ if(activePhoneOrder(sql,p,siteOrder?.id))return phoneConflict();
  if(!p.cityId.trim())return out({error:'Select an Atlas city before saving.'},400);
  if(raw.fulfillmentMode!==undefined&&raw.fulfillmentMode!=='stock')return out({error:'Invalid parcel type.'},400);
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'Connect Atlas to load your stock.'},409);
@@ -69,8 +61,8 @@ async function handlePost(req:Request){
  // Recheck and reserve the phone in one SQLite write transaction, before contacting Atlas.
  sql.exec('BEGIN IMMEDIATE');
  try{
-  if(hasActivePhone(sql,p)){sql.exec('ROLLBACK');return phoneConflict()}
-  if(siteOrder){const current=sql.prepare('SELECT assigned_email,local_order_id,review_status,source_updated_at,payload FROM youcan_orders WHERE id=?').get(siteOrder.id);if(!current||current.local_order_id||current.review_status!=='confirmed'||current.source_updated_at!==siteOrder.source_updated_at||current.payload!==siteOrder.payload||user.role!=='admin'&&current.assigned_email!==user.email){sql.exec('ROLLBACK');return out({error:'Commande site modifiée. Actualisez la liste.'},409)}}
+  if(activePhoneOrder(sql,p,siteOrder?.id)){sql.exec('ROLLBACK');return phoneConflict()}
+  if(siteOrder){const current=sql.prepare('SELECT assigned_email,local_order_id,review_status,source_updated_at,payload,duplicate_of FROM youcan_orders WHERE id=?').get(siteOrder.id);if(!current||current.duplicate_of||current.local_order_id||current.review_status!=='confirmed'||current.source_updated_at!==siteOrder.source_updated_at||current.payload!==siteOrder.payload||user.role!=='admin'&&current.assigned_email!==user.email){sql.exec('ROLLBACK');return out({error:'Commande site modifiée. Actualisez la liste.'},409)}}
   sql.prepare(`INSERT INTO orders(id,payload,created_by,created_email,commission_rate,commission_multiplier,commission_upsell_stock_ids,created_at,updated_at,product_id,unit_cost_cents,purchase_total_cents,transport_estimate_cents,stock_released)
    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1)`).run(id,JSON.stringify(p),user.displayName,user.email,user.role==='agent'?10:0,upsellCommissionMultiplier(p,commissionUpsellStockIds),JSON.stringify(commissionUpsellStockIds),now,now,local?.id??null,local?.costCents??null,purchaseTotalCents,local?.transportCents??null);
   if(siteOrder)sql.prepare('UPDATE youcan_orders SET local_order_id=? WHERE id=?').run(id,siteOrder.id);
