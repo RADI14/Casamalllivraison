@@ -1,3 +1,4 @@
+import {localOrderPhones} from '../../morocco-phone';
 import {reconcileWebsiteDuplicates} from '../../../server/phone-orders';
 import {POST as parcelAction} from '../orders/route';
 import {websiteParcelPayload} from '../../../server/youcan-parcel';
@@ -10,7 +11,7 @@ const out=(b:any,status=200)=>Response.json(b,{status,headers:{'Cache-Control':'
 export async function GET(){const actor=await getActor();if(!actor)return out({error:'Connexion requise'},401);const db=getSqlite().connection;reconcileWebsiteDuplicates(db,storeId());
  const rows=db.prepare('SELECT y.*,o.tracking,o.status AS order_status FROM youcan_orders y LEFT JOIN orders o ON o.id=y.local_order_id WHERE y.store_id=? AND y.duplicate_of IS NULL'+(actor.role==='admin'?'':' AND y.assigned_email=?')+' ORDER BY y.received_at DESC LIMIT 500').all(...(actor.role==='admin'?[storeId()]:[storeId(),actor.email]));
  const c=db.prepare('SELECT connected_at,expires_at FROM youcan_connections WHERE store_id=?').get(storeId());
- return out({orders:rows.map(r=>{const {prepared_payload,...safe}=r;return {...safe,prepared:prepared_payload?JSON.parse(String(prepared_payload)):null,payload:JSON.parse(String(r.payload))}}),configured:!!(secret()&&storeId()),connected:!!c&&Number(c.expires_at)>Date.now(),isAdmin:actor.role==='admin'});
+ return out({orders:rows.map(r=>{const {prepared_payload,...safe}=r;return {...safe,prepared:prepared_payload?localOrderPhones(JSON.parse(String(prepared_payload))):null,payload:localOrderPhones(JSON.parse(String(r.payload)))}}),configured:!!(secret()&&storeId()),connected:!!c&&Number(c.expires_at)>Date.now(),isAdmin:actor.role==='admin'});
 }
 export async function POST(req:Request){const actor=await getActor();if(!actor)return out({error:'Connexion requise'},401);if(!sameOrigin(req))return out({error:'Origine refusée'},403);let b:any;try{b=await req.json()}catch{return out({error:'Requête invalide'},400)}const db=getSqlite().connection;
  try{
@@ -28,7 +29,7 @@ export async function POST(req:Request){const actor=await getActor();if(!actor)r
   const fresh=db.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(row.id,storeId())!;
   if(fresh.duplicate_of)return out({error:'Commande en double : ce numéro a déjà une commande en cours.',code:'active_phone_order'},409);
   const {prepared_payload,...safe}=fresh;
-  return out({order:{...safe,payload:JSON.parse(String(fresh.payload)),prepared:prepared_payload?JSON.parse(String(prepared_payload)):null}});
+  return out({order:{...safe,payload:localOrderPhones(JSON.parse(String(fresh.payload))),prepared:prepared_payload?localOrderPhones(JSON.parse(String(prepared_payload))):null}});
  }
  if(b.action==='status'){
   if(!validWebsiteStatus(b.status))return out({error:'Statut invalide'},400);

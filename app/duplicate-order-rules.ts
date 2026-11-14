@@ -1,4 +1,4 @@
-export function duplicatePhone(value:unknown){return typeof value==='string'?value.replace(/[^0-9]/g,'').replace(/^(00212|212)/,'0'):''}
+export function duplicatePhone(value:unknown){return typeof value==='string'?value.replace(/[^0-9]/g,'').replace(/^(00212|212)0?/,'0'):''}
 const clean=(v:unknown)=>typeof v==='string'?v.normalize('NFKC').trim().toLocaleLowerCase().replace(/\s+/g,' '):'';
 export function duplicateOrders(records:any[],candidate:{phone:string;stockId:string;sku:string;product:string},now=Date.now()){
  const phone=duplicatePhone(candidate.phone);if(!phone)return [];

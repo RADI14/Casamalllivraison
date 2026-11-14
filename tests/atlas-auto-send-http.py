@@ -12,6 +12,7 @@ globalThis.fetch=async(url,options={})=>{
  if(String(url).endsWith('/stocks'))return Response.json({success:true,data:[{stockId:'stock-test',sku:'TEST',name:'Stock product',available:100,frozen:false}]});
  if(String(url).endsWith('/colis')&&options.method==='POST'){
   const p=JSON.parse(options.body),id=options.headers['Idempotency-Key'];
+  if(!/^0[67]\\d{8}$/.test(p.phone)||p.phone2&&!/^0[67]\\d{8}$/.test(p.phone2))throw Error('Expected local 06/07 phones');
   appendFileSync(process.env.MOCK_ATLAS_CALLS,JSON.stringify({id,p})+'\\n');
   await new Promise(r=>setTimeout(r,50));
   if(p.fullname==='Fail once'&&!failed.has(id)){failed.add(id);return Response.json({success:false,message:'Carrier temporarily unavailable'},{status:503})}
@@ -38,7 +39,7 @@ globalThis.fetch=async(url,options={})=>{
    time.sleep(.2)
   else:raise RuntimeError('health timed out')
   status,h,_=req('/api/auth/login',{'email':'owner@test.com','password':password});assert status==200;owner=h['Set-Cookie'].split(';')[0]
-  payload={'fulfillmentMode':'stock','atlasStockId':'stock-test','fullname':'Client','phone':'0612345678','phone2':'','address':'10 rue des fleurs Kenitra','cityName':'Kenitra','cityId':'city-test','storeId':'','product':'Stock product','quantity':2,'price':199,'note':'','openpackage':False,'change':False,'allowtry':False}
+  payload={'fulfillmentMode':'stock','atlasStockId':'stock-test','fullname':'Client','phone':'+212 612345678','phone2':'','address':'10 rue des fleurs Kenitra','cityName':'Kenitra','cityId':'city-test','storeId':'','product':'Stock product','quantity':2,'price':199,'note':'','openpackage':False,'change':False,'allowtry':False}
   def create(name='Client',**patch):return {'action':'create','requestId':str(uuid.uuid4()),'payload':{**payload,'fullname':name,'phone':{'Fail once':'0612345679','Ambiguous response':'0612345680'}.get(name,payload['phone']),**patch}}
   assert req('/api/orders',create(fulfillmentMode='normal'),owner)[0]==400
   assert req('/api/orders',create(cityId=''),owner)[0]==400
