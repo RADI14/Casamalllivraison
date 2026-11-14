@@ -17,3 +17,9 @@ test('empty shipping resources do not hide the customer address; supported legac
  assert.equal(orderDraft({shipping:{address:{address1:'Legacy line 1',address2:'Legacy line 2'}}}).address,'Legacy line 1, Legacy line 2');
  assert.equal(orderDraft({shipping:{address:[]},customer:{city:'City only'},notes:'Internal note'}).address,'');
 });
+
+test('store checkout address in customer.region is recovered only when canonical address is absent',()=>{
+ assert.equal(orderDraft({customer:{region:'Rue du test &quot;A&quot;',city:'City'}}).address,'Rue du test "A"');
+ assert.equal(orderDraft({customer:{data:{region:'Rue du test &#34;B&#34;'}}}).address,'Rue du test "B"');
+ assert.equal(orderDraft({customer:{region:'Region fallback'},shipping:{address:{first_line:'Canonical street'}}}).address,'Canonical street');
+});
