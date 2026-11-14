@@ -5,7 +5,7 @@ root=Path(__file__).resolve().parent.parent
 with tempfile.TemporaryDirectory() as tmp:
  password=secrets.token_urlsafe(24);key='test-youcan-secret';store='test-store';base='http://127.0.0.1:3196';dbfile=tmp+'/db.sqlite'
  preload=Path(tmp)/'mock.mjs';preload.write_text('''const original=globalThis.fetch;globalThis.fetch=async(url,opt={})=>{if(String(url).startsWith('https://api.atlaslivraison.com/')){if(String(url).endsWith('/stocks'))return Response.json({success:true,data:[{stockId:'s',sku:'S',name:'P',available:10}]});if(String(url).endsWith('/colis')&&opt.method==='POST'){if(!/^0[67]\\d{8}$/.test(JSON.parse(opt.body).phone))return Response.json({success:false,message:'Phone must be local'},{status:400});if(String(JSON.parse(opt.body).note).startsWith('YouCan #YC1')&&JSON.parse(opt.body).price!==100)return Response.json({success:false,message:'Expected exactly 100 DH COD'},{status:400});if(JSON.parse(opt.body).address!=='Rue de test 12, Appartement 4')return Response.json({success:false,message:'Wrong delivery address'},{status:400});return Response.json({success:true,data:{code:'TEST-CODE',cfees:30}});}return Response.json({success:true,data:[]})}if(!String(url).startsWith('https://api.youcan.shop/'))return original(url,opt);if(String(url).endsWith('/oauth/token')){const params=new URLSearchParams(opt.body);if(!params.get('redirect_uri')||opt.headers.Accept!=='application/json')return Response.json({error:'invalid_request'},{status:400});return Response.json({data:{access_token:'fake-token',expires_in:86400}});}if(String(url).endsWith('/resthooks/subscribe')){const b=JSON.parse(opt.body);if(!['order.created','order.updated','app.uninstalled'].includes(b.event)||b.target_url!=='https://fastlivraison.com/api/youcan/webhook')return Response.json({error:'invalid_request'},{status:400});return Response.json({id:'hook-'+b.event});}if(String(url).includes('/products/product-one?'))return Response.json({id:'product-one',variants:[{id:'variant-one',sku:'S'}]});if(String(url).endsWith('/me'))return Response.json({id:'test-store'});return Response.json({id:String(url).includes('/orders/remote-repeat?')?'remote-repeat':'remote',store_id:'test-store',ref:'YC1',total:99,currency:'MAD',customer:{first_name:'Test',phone:'+212612345678',region:'Rue de test 12, Appartement 4',city:'City'},shipping:{address:[]},variants:[{quantity:1,variant:{id:'variant-one',sku:'OLD-SKU',product:{id:'product-one',name:'P'}}}]});};''')
- env={**os.environ,'SQLITE_PATH':dbfile,'OWNER_EMAIL':'owner@test.com','ADMIN_PASSWORD':password,'ATLAS_AUTO_SYNC':'false','ATLAS_API_KEY':'test-atlas','PORT':'3196','HOSTNAME':'127.0.0.1','NODE_ENV':'production','APP_URL':base,'YOUCAN_CLIENT_SECRET':key,'YOUCAN_CLIENT_ID':'test-client','YOUCAN_STORE_ID':store}
+ env={**os.environ,'SQLITE_PATH':dbfile,'OWNER_EMAIL':'owner@test.com','ADMIN_PASSWORD':password,'ATLAS_AUTO_SYNC':'false','ATLAS_API_KEY':'test-atlas','PORT':'3196','HOSTNAME':'127.0.0.1','NODE_ENV':'production','APP_URL':base,'YOUCAN_CLIENT_SECRET':key,'YOUCAN_CLIENT_ID':'test-client','YOUCAN_STORE_ID':store,'YOUCAN_COD_BACKFILL_AUTO':'false'}
  log=open('/tmp/youcan-http.log','w');p=subprocess.Popen(['node','--import',str(preload),'.next/standalone/server.js'],cwd=root,env=env,stdout=log,stderr=log)
  def req(path,body=None,cookie='',headers=None):
   h={'Origin':base,'Content-Type':'application/json','Cookie':cookie,**(headers or {})};raw=body.encode() if isinstance(body,str) else json.dumps(body).encode() if body is not None else None
@@ -41,6 +41,22 @@ with tempfile.TemporaryDirectory() as tmp:
   for action in ['status','details','send']:
    assert req('/api/youcan',{'action':action,'id':duplicate_id,'status':'confirmed'},owner)[0]==409
 
+  with sqlite3.connect(dbfile) as db:
+   old=json.loads(db.execute('SELECT payload FROM youcan_orders WHERE id=?',(row['id'],)).fetchone()[0]);old['price']=99
+   db.execute('UPDATE youcan_orders SET payload=? WHERE id=?',(json.dumps(old),row['id']))
+  p.terminate();p.wait(timeout=10);env['YOUCAN_COD_BACKFILL_AUTO']='true'
+  p=subprocess.Popen(['node','--import',str(preload),'.next/standalone/server.js'],cwd=root,env=env,stdout=log,stderr=log)
+  for _ in range(100):
+   try:
+    if req('/api/health')[0]==200:break
+   except Exception:pass
+   time.sleep(.1)
+  for _ in range(150):
+   with sqlite3.connect(dbfile) as db:job=db.execute('SELECT done,adjusted FROM youcan_cod_backfill_jobs WHERE store_id=?',(store,)).fetchone()
+   if job and job[0]:break
+   time.sleep(.1)
+  assert job and job[0] and job[1]==1,job
+  assert req('/api/youcan',cookie=owner)[2]['orders'][0]['payload']['price']==100
   assert row['payload']['address']=='Rue de test 12, Appartement 4' and row['payload']['cityName']=='City'
   assert row['payload']['lines'][0]['sku']=='S'
   with sqlite3.connect(dbfile) as db:

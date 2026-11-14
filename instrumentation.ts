@@ -4,5 +4,7 @@ export async function register(){
   startAtlasSyncWorker();
   const {startAtlasStockWorker}=await import('./server/atlas-stock-refresh');
   startAtlasStockWorker();
+  const {startYoucanCodBackfillWorker}=await import('./server/youcan-cod-backfill-worker');
+  startYoucanCodBackfillWorker();
  }
 }
