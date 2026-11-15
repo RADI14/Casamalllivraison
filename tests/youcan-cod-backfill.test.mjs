@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {runYoucanCodBackfillBatch} from '../server/youcan-cod-backfill-job.ts';
 import {backfillYoucanCod} from '../server/youcan-cod-backfill.ts';
-function setup(){const db=new DatabaseSync(':memory:');for(const file of ['0027_youcan.sql','0028_youcan_workflow.sql','0029_youcan_phone_duplicates.sql','0030_youcan_cod_backfill.sql'])db.exec(readFileSync(new URL('../drizzle/'+file,import.meta.url),'utf8'));return db;}
+function setup(){const db=new DatabaseSync(':memory:');for(const file of ['0027_youcan.sql','0028_youcan_workflow.sql','0029_youcan_phone_duplicates.sql','0030_youcan_cod_backfill.sql','0031_youcan_order_trash.sql'])db.exec(readFileSync(new URL('../drizzle/'+file,import.meta.url),'utf8'));return db;}
 function add(db,id,price,prepared=null){db.prepare('INSERT INTO youcan_orders(id,store_id,remote_id,reference,payload,prepared_payload,source_updated_at,received_at) VALUES(?,?,?,?,?,?,?,?)').run(id,'store',id,id,JSON.stringify({price,currency:'MAD',address:'Saved address'}),prepared?JSON.stringify({price:prepared,product:'Reviewed product'}):null,'stamp','stamp');}
 const source=async id=>({id,total:99,currency:'MAD'});
 const get=(db,id)=>{const r=db.prepare('SELECT * FROM youcan_orders WHERE id=?').get(id);return {...r,payload:JSON.parse(r.payload),prepared:r.prepared_payload?JSON.parse(r.prepared_payload):null}};

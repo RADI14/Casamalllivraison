@@ -41,6 +41,29 @@ with tempfile.TemporaryDirectory() as tmp:
   for action in ['status','details','send']:
    assert req('/api/youcan',{'action':action,'id':duplicate_id,'status':'confirmed'},owner)[0]==409
 
+  assert req('/api/youcan',{'action':'delete','ids':[]},owner)[0]==400
+  assert req('/api/youcan',{'action':'delete','ids':[row['id']]},owner)[2]['changed']==1
+  assert req('/api/youcan',cookie=owner)[2]['orders']==[]
+  assert len(req('/api/youcan?view=trash',cookie=owner)[2]['orders'])==1
+  assert req('/api/youcan',{'action':'status','id':row['id'],'status':'confirmed'},owner)[0]==410
+  assert req('/api/youcan',{'action':'send','id':row['id']},owner)[0]==410
+  assert req('/api/youcan/webhook',payload,headers={'x-youcan-signature':sig})[0]==200
+  assert req('/api/youcan',cookie=owner)[2]['orders']==[]
+  assert req('/api/youcan',{'action':'restore','ids':[row['id']]},owner)[2]['changed']==1
+  assert req('/api/youcan?view=trash',cookie=owner)[2]['orders']==[]
+  bulk_id=str(uuid.uuid4())
+  with sqlite3.connect(dbfile) as db:
+   other={**row['payload'],'phone':'0699999999'}
+   db.execute('INSERT INTO youcan_orders(id,store_id,remote_id,reference,payload,source_updated_at,received_at,hydrated) VALUES(?,?,?,?,?,?,?,1)',(bulk_id,store,'bulk-test','BULK',json.dumps(other),row['source_updated_at'],row['received_at']))
+  assert req('/api/youcan',{'action':'delete','ids':[row['id'],bulk_id]},owner)[2]['changed']==2
+  assert len(req('/api/youcan?view=trash',cookie=owner)[2]['orders'])==2
+  assert req('/api/youcan',{'action':'restore','ids':[row['id'],bulk_id]},owner)[2]['changed']==2
+  assert req('/api/youcan',{'action':'status','id':row['id'],'status':'confirmed'},owner)[0]==200
+  assert req('/api/youcan',{'action':'delete','ids':[bulk_id,row['id']]},owner)[0]==409
+  assert len(req('/api/youcan',cookie=owner)[2]['orders'])==2
+  assert req('/api/youcan',{'action':'status','id':row['id'],'status':'new'},owner)[0]==200
+  assert req('/api/youcan',{'action':'delete','ids':[bulk_id]},owner)[0]==200
+
   with sqlite3.connect(dbfile) as db:
    old=json.loads(db.execute('SELECT payload FROM youcan_orders WHERE id=?',(row['id'],)).fetchone()[0]);old['price']=99
    db.execute('UPDATE youcan_orders SET payload=? WHERE id=?',(json.dumps(old),row['id']))
@@ -74,6 +97,8 @@ with tempfile.TemporaryDirectory() as tmp:
   assert req('/api/youcan',cookie=agent)[2]['orders']==[]
   assert req('/api/youcan',{'action':'details','id':row['id']},agent)[0]==404
   assert req('/api/youcan',{'action':'subscribe'},agent)[0]==403
+  assert req('/api/youcan',{'action':'delete','ids':[row['id']]},agent)[0]==403
+  assert req('/api/youcan?view=trash',cookie=agent)[0]==403
   assert req('/api/youcan',{'action':'assign','id':row['id'],'email':'a@test.com'},owner)[0]==200
   assert len(req('/api/youcan',cookie=agent)[2]['orders'])==1
   with sqlite3.connect(dbfile) as db:
@@ -95,6 +120,7 @@ with tempfile.TemporaryDirectory() as tmp:
   with sqlite3.connect(dbfile) as db:assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==0
   assert req('/api/youcan',{'action':'send','id':row['id']},agent)[0]==201
   assert req('/api/youcan',{'action':'send','id':row['id']},agent)[0]==200
+  assert req('/api/youcan',{'action':'delete','ids':[row['id']]},owner)[0]==409
   assert req('/api/youcan',{'action':'status','id':row['id'],'status':'cancelled'},agent)[0]==409
   with sqlite3.connect(dbfile) as db:
    assert db.execute('SELECT COUNT(*) FROM orders').fetchone()[0]==1

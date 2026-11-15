@@ -1,6 +1,6 @@
 import type {DatabaseSync} from 'node:sqlite';
 export async function backfillYoucanCod(db:DatabaseSync,store:string,readOrder:(id:string)=>Promise<any>,afterId=''){
- const rows=db.prepare('SELECT id,remote_id,reference,payload,prepared_payload FROM youcan_orders WHERE store_id=? AND id>? AND local_order_id IS NULL AND duplicate_of IS NULL ORDER BY id LIMIT 5').all(store,afterId);
+ const rows=db.prepare('SELECT id,remote_id,reference,payload,prepared_payload FROM youcan_orders WHERE store_id=? AND id>? AND deleted_at IS NULL AND local_order_id IS NULL AND duplicate_of IS NULL ORDER BY id LIMIT 5').all(store,afterId);
  const results=await Promise.all(rows.map(async row=>{
   try{
    const response=await readOrder(String(row.remote_id)),source=response?.data??response,old=JSON.parse(String(row.payload)),prepared=row.prepared_payload?JSON.parse(String(row.prepared_payload)):null;
@@ -25,7 +25,7 @@ export async function backfillYoucanCod(db:DatabaseSync,store:string,readOrder:(
    if(result.kind==='review'){review.push(result.reference!);continue}if(result.kind==='failed'){failed.push(result.reference!);continue}
    if(result.kind==='already'){already++;continue}
    const row=result.row!;
-   const update=db.prepare('UPDATE youcan_orders SET payload=?,prepared_payload=?,review_updated_at=? WHERE id=? AND store_id=? AND local_order_id IS NULL AND duplicate_of IS NULL AND payload=? AND prepared_payload IS ?').run(result.payload!,result.prepared!,new Date().toISOString(),row.id,store,row.payload,row.prepared_payload);
+   const update=db.prepare('UPDATE youcan_orders SET payload=?,prepared_payload=?,review_updated_at=? WHERE id=? AND store_id=? AND deleted_at IS NULL AND local_order_id IS NULL AND duplicate_of IS NULL AND payload=? AND prepared_payload IS ?').run(result.payload!,result.prepared!,new Date().toISOString(),row.id,store,row.payload,row.prepared_payload);
    if(update.changes)adjusted++;else failed.push(String(row.reference));
   }
   db.exec('COMMIT');

@@ -12,7 +12,7 @@ export function activePhoneOrder(db:DatabaseSync,p:any,excludeWebsiteId?:string)
  const wanted=new Set(phones(p));if(!wanted.size)return null;
  const parcel=activeParcels(db).find(o=>phones(decode(o.payload)).some(phone=>wanted.has(phone)));
  if(parcel)return {kind:'order',id:String(parcel.id)};
- const pending=db.prepare("SELECT id,payload,prepared_payload FROM youcan_orders WHERE local_order_id IS NULL AND duplicate_of IS NULL AND review_status!='cancelled' AND store_id=? ORDER BY received_at,id").all(process.env.YOUCAN_STORE_ID??'');
+ const pending=db.prepare("SELECT id,payload,prepared_payload FROM youcan_orders WHERE deleted_at IS NULL AND local_order_id IS NULL AND duplicate_of IS NULL AND review_status!='cancelled' AND store_id=? ORDER BY received_at,id").all(process.env.YOUCAN_STORE_ID??'');
  const row=pending.find(o=>o.id!==excludeWebsiteId&&!decode(o.payload).blocked&&phones(decode(o.prepared_payload??o.payload)).some(phone=>wanted.has(phone)));
  return row?{kind:'website',id:String(row.id)}:null;
 }
@@ -24,7 +24,7 @@ export function reconcileWebsiteDuplicates(db:DatabaseSync,store:string){
  try{
   const seen=new Map<string,string>();
   for(const o of activeParcels(db))for(const phone of phones(decode(o.payload)))if(!seen.has(phone))seen.set(phone,'order:'+o.id);
-  const rows=db.prepare('SELECT id,payload,prepared_payload,review_status,local_order_id,duplicate_of FROM youcan_orders WHERE store_id=? ORDER BY received_at,id').all(store);
+  const rows=db.prepare('SELECT id,payload,prepared_payload,review_status,local_order_id,duplicate_of FROM youcan_orders WHERE store_id=? AND deleted_at IS NULL ORDER BY received_at,id').all(store);
   let count=0;
   for(const row of rows){
    if(row.local_order_id||row.duplicate_of||row.review_status==='cancelled'||decode(row.payload).blocked)continue;

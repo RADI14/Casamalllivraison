@@ -35,3 +35,8 @@
 [data-theme=dark] .shell .main .website-workflow button.website-information:hover{background:#2b4265}
 [data-theme=dark] .shell .website-workflow .website-notice{background:#1c3d33;color:#92e6bd;border-color:#3d7961}
 @media(max-width:600px){.shell .website-workflow .website-toolbar{padding:14px;gap:10px}.shell .website-workflow .website-toolbar>select,.shell .website-workflow .website-toolbar>button{flex:1;min-width:160px}}
+
+.shell .main .website-workflow button.website-delete{background:#fff0f2;color:#a52b40;border-color:#efb4bf}
+.shell .main .website-workflow button.website-delete[data-restore=true]{background:#e8f8f0;color:#177154;border-color:#a5d9c4}
+[data-theme=dark] .shell .main .website-workflow button.website-delete{background:#452637;color:#ffabb8;border-color:#805065}
+[data-theme=dark] .shell .main .website-workflow button.website-delete[data-restore=true]{background:#1c3d33;color:#92e6bd;border-color:#3d7961}

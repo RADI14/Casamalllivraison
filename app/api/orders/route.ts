@@ -38,6 +38,7 @@ async function handlePost(req:Request){
   siteOrder=getSqlite().connection.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(b.websiteOrderId,process.env.YOUCAN_STORE_ID??'');
   if(!siteOrder||user.role!=='admin'&&siteOrder.assigned_email!==user.email)return out({error:'Commande site introuvable'},404);
   if(b.expectedWebsiteSourceAt!==undefined&&b.expectedWebsiteSourceAt!==siteOrder.source_updated_at)return out({error:'La commande a changé sur YouCan. Vérifiez-la de nouveau.'},409);
+  if(siteOrder.deleted_at)return out({error:"Cette commande est dans la corbeille."},409);
   if(siteOrder.duplicate_of)return phoneConflict();
   if(siteOrder.review_status!=='confirmed')return out({error:'Confirmez la commande Website avant l’envoi à Atlas.'},409);
   if(!siteOrder.hydrated||JSON.parse(siteOrder.payload).blocked||JSON.parse(siteOrder.payload).currency!=='MAD')return out({error:'Vérifiez les informations et la devise de la commande site.'},409);
@@ -63,7 +64,7 @@ async function handlePost(req:Request){
  sql.exec('BEGIN IMMEDIATE');
  try{
   if(activePhoneOrder(sql,p,siteOrder?.id)){sql.exec('ROLLBACK');return phoneConflict()}
-  if(siteOrder){const current=sql.prepare('SELECT assigned_email,local_order_id,review_status,source_updated_at,payload,duplicate_of FROM youcan_orders WHERE id=?').get(siteOrder.id);if(!current||current.duplicate_of||current.local_order_id||current.review_status!=='confirmed'||current.source_updated_at!==siteOrder.source_updated_at||current.payload!==siteOrder.payload||user.role!=='admin'&&current.assigned_email!==user.email){sql.exec('ROLLBACK');return out({error:'Commande site modifiée. Actualisez la liste.'},409)}}
+  if(siteOrder){const current=sql.prepare('SELECT assigned_email,local_order_id,review_status,source_updated_at,payload,duplicate_of,deleted_at FROM youcan_orders WHERE id=?').get(siteOrder.id);if(!current||current.deleted_at||current.duplicate_of||current.local_order_id||current.review_status!=='confirmed'||current.source_updated_at!==siteOrder.source_updated_at||current.payload!==siteOrder.payload||user.role!=='admin'&&current.assigned_email!==user.email){sql.exec('ROLLBACK');return out({error:'Commande site modifiée. Actualisez la liste.'},409)}}
   sql.prepare(`INSERT INTO orders(id,payload,created_by,created_email,commission_rate,commission_multiplier,commission_upsell_stock_ids,created_at,updated_at,product_id,unit_cost_cents,purchase_total_cents,transport_estimate_cents,stock_released)
    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1)`).run(id,JSON.stringify(p),user.displayName,user.email,user.role==='agent'?10:0,upsellCommissionMultiplier(p,commissionUpsellStockIds),JSON.stringify(commissionUpsellStockIds),now,now,local?.id??null,local?.costCents??null,purchaseTotalCents,local?.transportCents??null);
   if(siteOrder)sql.prepare('UPDATE youcan_orders SET local_order_id=? WHERE id=?').run(id,siteOrder.id);
