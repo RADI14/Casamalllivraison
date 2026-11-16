@@ -26,6 +26,25 @@ function addressText(value:any){
  const second=[address.second_line,address.address2,address.line2].find(v=>typeof v==='string'&&v.trim());
  return [first,second].filter(Boolean).map(v=>v.trim()).join(', ').slice(0,1000);
 }
+// Convert an explicitly named offer to physical units once, at intake.
+// Numeric prices, model names and unrelated variation values are not quantities.
+export function youcanPhysicalQuantity(value:any,variations:any){
+ const ordered=Number(value);
+ if(!Number.isInteger(ordered)||ordered<1)return ordered;
+ const labels=variations&&typeof variations==='object'?Object.values(variations):[];
+ const counts=new Set<number>();
+ for(const label of labels){
+  if(typeof label!=='string')continue;
+  const v=label.normalize('NFKC').replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).trim();
+  const arabic=v.match(/^(?:عرض\s+)?(واحدة|واحد|جوج|ثلاثة|ثلاث|ربعة|أربعة|اربعة|خمسة)(?=\s|ب|$)/);
+  const words:Record<string,number>={واحدة:1,واحد:1,جوج:2,ثلاثة:3,ثلاث:3,ربعة:4,أربعة:4,اربعة:4,خمسة:5};
+  const numeric=v.match(/^(?:pack|lot)\s*(?:de\s*)?(\d+)\b/i)??v.match(/^(\d+)\s*(?:pi[eè]ces?|pcs?|unit[eé]s?|قطع|قطعة)(?=\s|$)/i);
+  const count=arabic?words[arabic[1]]:numeric?Number(numeric[1]):1;
+  if(count>1&&count<=9)counts.add(count);
+ }
+ if(counts.size>1)throw Error('Quantité de l’offre YouCan ambiguë. Vérifiez les variantes.');
+ return ordered*([...counts][0]??1);
+}
 export function orderDraft(o:any){
  const customer=unwrap(o.customer)??{},shipping=unwrap(o.shipping)??{};
  const candidates=[shipping.address,o.shipping_address,customer.address,customer.default_address].map(unwrap);
@@ -35,7 +54,7 @@ export function orderDraft(o:any){
  // the previously adjusted price, so webhook retries cannot add another dirham.
  const currency=text(o.currency||o.customer_currency?.code||'MAD',10),total=Number(o.total);
  const price=Number.isFinite(total)&&total>0?Math.round(total*100+(currency==='MAD'?100:0))/100:0;
- return {fullname:text(address.full_name||[address.first_name,address.last_name].filter(Boolean).join(' ')||customer.full_name||[customer.first_name,customer.last_name].filter(Boolean).join(' ')),phone:text(address.phone||customer.phone,40),phone2:'',address:addressText(address)||text(customer.region).trim().replace(/&#(?:34|x22);|&quot;/gi,'"').replace(/&#(?:39|x27);|&apos;/gi,"'").replace(/&amp;/gi,'&'),cityName:text(address.city?.name||address.city||customer.city,150),price,note:text(o.notes),blocked:['cancelled','canceled','refunded','closed'].includes(String(o.status_object?.slug??o.status_new??'').toLowerCase()),currency,lines:Array.isArray(lines)?lines.slice(0,50).map((line:any)=>({name:text(line.variant?.product?.name||line.product?.name||line.name,200),variant:Object.values(line.variant?.variations??{}).filter(v=>typeof v==='string'&&v!=='default').map(v=>text(v,100)).join(' / '),sku:text(line.variant?.sku||line.sku,100),quantity:Number(line.quantity)})):[]};
+ return {fullname:text(address.full_name||[address.first_name,address.last_name].filter(Boolean).join(' ')||customer.full_name||[customer.first_name,customer.last_name].filter(Boolean).join(' ')),phone:text(address.phone||customer.phone,40),phone2:'',address:addressText(address)||text(customer.region).trim().replace(/&#(?:34|x22);|&quot;/gi,'"').replace(/&#(?:39|x27);|&apos;/gi,"'").replace(/&amp;/gi,'&'),cityName:text(address.city?.name||address.city||customer.city,150),price,note:text(o.notes),blocked:['cancelled','canceled','refunded','closed'].includes(String(o.status_object?.slug??o.status_new??'').toLowerCase()),currency,lines:Array.isArray(lines)?lines.slice(0,50).map((line:any)=>({name:text(line.variant?.product?.name||line.product?.name||line.name,200),variant:Object.values(line.variant?.variations??{}).filter(v=>typeof v==='string'&&v!=='default').map(v=>text(v,100)).join(' / '),sku:text(line.variant?.sku||line.sku,100),quantity:youcanPhysicalQuantity(line.quantity,line.variant?.variations)})):[]};
 }
 export function receiveYoucan(db:DatabaseSync,o:any,eventAt:string,hydrated=false){
  if(typeof o?.id!=='string'||! /^[a-zA-Z0-9-]{1,100}$/.test(o.id))throw Error('Invalid order ID');
