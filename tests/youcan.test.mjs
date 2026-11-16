@@ -68,7 +68,17 @@ test('YouCan COD adds exactly one dirham per order from the original total',()=>
 });
 
 test('import retains the ordered quantity rather than defaulting invalid values to one',()=>{
- assert.equal(orderDraft({variants:[{quantity:'3',variant:{variations:{Offer:'Pack 2'}}}]}).lines[0].quantity,3);
+ assert.equal(orderDraft({variants:[{quantity:'3',variant:{variations:{Offer:'Pack 2'}}}]}).lines[0].quantity,6);
  assert.equal(orderDraft({variants:[{quantity:0}]}).lines[0].quantity,0);
  assert.equal(orderDraft({variants:[{quantity:-1}]}).lines[0].quantity,-1);
+});
+
+ test('offer quantities become physical pieces at intake and do not change COD',()=>{
+ const make=(offer,q=1)=>orderDraft({total:249,currency:'MAD',variants:[{quantity:q,variant:{variations:{'اختاري العرض ديالك':offer}}}]});
+ for(const [offer,units] of [['واحدة بـ149 درهم',1],['جوج بـ249 درهم — وفري 49 درهم',2],['ثلاثة بـ199 درهم',3],['ربعة بـ249 درهم',4],['Pack 2',2],['2 pièces',2]]){
+  const draft=make(offer);assert.equal(draft.lines[0].quantity,units);assert.equal(draft.price,250);
+  assert.deepEqual(make(offer),draft);assert.equal(make(offer,2).lines[0].quantity,units*2);
+ }
+ for(const label of ['149 DH','300W','8 blades','Rouge','default'])assert.equal(make(label,3).lines[0].quantity,3);
+ assert.throws(()=>orderDraft({variants:[{quantity:1,variant:{variations:{a:'Pack 2',b:'Pack 3'}}}]}),/ambiguë/);
 });
