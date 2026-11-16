@@ -7,21 +7,21 @@ test('source changes reset untransmitted confirmation and prepared details; dupl
 
 test('checkout shipping first_line and second_line become the delivery address, separate from the city',()=>{
  const draft=orderDraft({shipping:{address:{first_line:'  Rue de test 12  ',second_line:'Appartement 4',city:'Kénitra'}},customer:{address:{first_line:'Old saved address',city:'Rabat'}},notes:'Not the address'});
- assert.equal(draft.address,'Rue de test 12, Appartement 4');assert.equal(draft.cityName,'Kénitra');
- assert.equal(orderDraft({shipping:{data:{address:{data:{first_line:'حي السلام زنقة 12',city:'القنيطرة'}}}}}).address,'حي السلام زنقة 12');
+ assert.equal(draft.address,'Adresse : Rue de test 12, Appartement 4');assert.equal(draft.cityName,'Kénitra');
+ assert.equal(orderDraft({shipping:{data:{address:{data:{first_line:'حي السلام زنقة 12',city:'القنيطرة'}}}}}).address,'العنوان: حي السلام زنقة 12');
 });
 test('empty shipping resources do not hide the customer address; supported legacy lines are retained',()=>{
- assert.equal(orderDraft({shipping:{address:[]},customer:{address:{data:{first_line:'Customer street',second_line:'Floor 2',city:'City'}}}}).address,'Customer street, Floor 2');
- assert.equal(orderDraft({shipping_address:{first_line:'Order street'},customer:{address:{first_line:'Other street'}}}).address,'Order street');
- assert.equal(orderDraft({customer:{address:'Legacy string address'}}).address,'Legacy string address');
- assert.equal(orderDraft({shipping:{address:{address1:'Legacy line 1',address2:'Legacy line 2'}}}).address,'Legacy line 1, Legacy line 2');
+ assert.equal(orderDraft({shipping:{address:[]},customer:{address:{data:{first_line:'Customer street',second_line:'Floor 2',city:'City'}}}}).address,'Adresse : Customer street, Floor 2');
+ assert.equal(orderDraft({shipping_address:{first_line:'Order street'},customer:{address:{first_line:'Other street'}}}).address,'Adresse : Order street');
+ assert.equal(orderDraft({customer:{address:'Legacy string address'}}).address,'Adresse : Legacy string address');
+ assert.equal(orderDraft({shipping:{address:{address1:'Legacy line 1',address2:'Legacy line 2'}}}).address,'Adresse : Legacy line 1, Legacy line 2');
  assert.equal(orderDraft({shipping:{address:[]},customer:{city:'City only'},notes:'Internal note'}).address,'');
 });
 
 test('store checkout address in customer.region is recovered only when canonical address is absent',()=>{
- assert.equal(orderDraft({customer:{region:'Rue du test &quot;A&quot;',city:'City'}}).address,'Rue du test "A"');
- assert.equal(orderDraft({customer:{data:{region:'Rue du test &#34;B&#34;'}}}).address,'Rue du test "B"');
- assert.equal(orderDraft({customer:{region:'Region fallback'},shipping:{address:{first_line:'Canonical street'}}}).address,'Canonical street');
+ assert.equal(orderDraft({customer:{region:'Rue du test &quot;A&quot;',city:'City'}}).address,'Adresse : Rue du test "A"');
+ assert.equal(orderDraft({customer:{data:{region:'Rue du test &#34;B&#34;'}}}).address,'Adresse : Rue du test "B"');
+ assert.equal(orderDraft({customer:{region:'Region fallback'},shipping:{address:{first_line:'Canonical street'}}}).address,'Adresse : Canonical street');
 });
 
 test('legacy order SKU snapshots use the exact current variant ID, never another pack or product name',()=>{
@@ -81,4 +81,12 @@ test('import retains the ordered quantity rather than defaulting invalid values 
  }
  for(const label of ['149 DH','300W','8 blades','Rouge','default'])assert.equal(make(label,3).lines[0].quantity,3);
  assert.throws(()=>orderDraft({variants:[{quantity:1,variant:{variations:{a:'Pack 2',b:'Pack 3'}}}]}),/ambiguë/);
+});
+
+test('address labels follow the written language and remain stable on reimport',()=>{
+ const address=value=>orderDraft({customer:{region:value,city:'Kénitra'}}).address;
+ for(const [raw,expected] of [['Rue Hassan II 12','Adresse : Rue Hassan II 12'],['حي السلام زنقة 12','العنوان: حي السلام زنقة 12'],['شارع محمد V, résidence A','العنوان: شارع محمد V, résidence A'],['Rue ١٢','Adresse : Rue ١٢'],[' ADRESSE : Rue 12 ','Adresse : Rue 12'],['العنوان: حي السلام','العنوان: حي السلام'],['Adresse : Adresse : Rue 12','Adresse : Rue 12'],['Adresse : حي السلام','العنوان: حي السلام'],['   ','']]){
+  assert.equal(address(raw),expected);assert.equal(address(expected),expected);
+ }
+ assert.equal(address('A'.repeat(1000)).length,1000);
 });
