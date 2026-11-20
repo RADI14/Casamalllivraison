@@ -1,3 +1,4 @@
+import {atlasFetch} from '../app/atlas-http.ts';
 import {eq,and,sql} from 'drizzle-orm';
 import {getDb} from '../db';
 import {orders} from '../db/schema';
@@ -15,7 +16,7 @@ const base='https://api.atlaslivraison.com/api/external';
 class CarrierRefusal extends Error{}
 async function carrier(key:string,path:string,body?:any){
  if(cooldown>Date.now())throw Error('Atlas limite temporairement les requêtes. Réessayez dans une minute.');
- const r=await fetch(base+path,{method:body?'POST':'GET',cache:'no-store',headers:{'x-api-key':key,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(body?20000:12000)});
+ const r=await atlasFetch(base+path,{method:body?'POST':'GET',cache:'no-store',headers:{'x-api-key':key,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(body?20000:12000)});
  if(r.status===429){const retry=Number(r.headers.get('Retry-After'));cooldown=Date.now()+Math.min(300,Math.max(30,Number.isFinite(retry)?retry:60))*1000}
  const j:any=await r.json().catch(()=>null);if(!r.ok||j?.success!==true)throw new CarrierRefusal(atlasError(r.status,j,key));return j;
 }

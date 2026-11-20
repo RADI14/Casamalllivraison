@@ -1,6 +1,7 @@
+import {atlasFetch} from '../app/atlas-http.ts';
 import {atlasDeliveredAt,deliveryTimestamp} from '../app/delivery-date-rules.ts';
 /** Read actual carrier events, never use entry time or sync time as delivery time. */
-export async function enrichDeliveryDate(key:string,code:string,payload:Record<string,any>,state:number,fetcher:typeof fetch=fetch){
+export async function enrichDeliveryDate(key:string,code:string,payload:Record<string,any>,state:number,fetcher:typeof fetch=atlasFetch){
  if(state!==17){delete payload.atlasDeliveredAt;delete payload.atlasDeliveryHistoryCheckedAt;return;}
  const checked=Date.parse(payload.atlasDeliveryHistoryCheckedAt??'');
  const ttl=deliveryTimestamp(payload.atlasDeliveredAt)?86400000:300000;
