@@ -1,11 +1,57 @@
 'use client';
-import {useRef,useState,useEffect} from 'react';
-import {Wallet,Upload} from 'lucide-react';
+
+import {useEffect, useState} from 'react';
+import {Wallet} from 'lucide-react';
 import {useI18n} from './i18n';
-export default function AtlasReceivable(){
- const {language,money,locale}=useI18n(),L=(fr:string,en:string,ar:string)=>language==='ar'?ar:language==='en'?en:fr;
- const [data,setData]=useState<any>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const file=useRef<HTMLInputElement>(null);
- useEffect(()=>{const controller=new AbortController();async function load(){if(document.visibilityState==='hidden')return;try{const r=await fetch('/api/atlas-settlement',{cache:'no-store',signal:controller.signal}),j:any=await r.json();if(r.ok)setData(j.settlement)}catch{}}void load();const timer=setInterval(load,60000);return()=>{controller.abort();clearInterval(timer)}},[]);
- async function upload(selected:File){setError('');setBusy(true);try{if(selected.size>4000000)throw Error(L('Fichier trop volumineux.','File too large.','الملف كبير بزاف.'));const r=await fetch('/api/atlas-settlement',{method:'POST',headers:{'Content-Type':'application/json'},body:await selected.text()}),j:any=await r.json();if(!r.ok)throw Error(j.error);setData(j.settlement)}catch(e){setError((e as Error).message)}finally{setBusy(false);if(file.current)file.current.value=''}}
- return <section className="settings-card atlas-receivable" aria-label={L('À recevoir d’Atlas','Receivable from Atlas','شحال باقي خاص Atlas يدوّز ليك')}><div className="card-top"><h2><Wallet size={20}/> {L('À recevoir d’Atlas','Receivable from Atlas','شحال باقي خاص Atlas يدوّز ليك')}</h2><button type="button" disabled={busy} onClick={()=>file.current?.click()}><Upload size={16}/>{L('Importer relevé Atlas','Import Atlas statement','دخل كشف Atlas')}</button><input ref={file} type="file" accept=".json,application/json" hidden aria-label={L('Relevé Atlas JSON','Atlas JSON statement','كشف Atlas بصيغة JSON')} onChange={e=>{const f=e.target.files?.[0];if(f)void upload(f)}}/></div><strong className="atlas-receivable-amount">{data?money(data.amountDueCents/100):'—'}</strong>{data?<><p>{L('Relevé du ','Statement as of ','حسب كشف ديال ')}{new Date(data.asOf).toLocaleString(locale,{timeZone:'Africa/Casablanca'})}</p><p>{L('Solde disponible : ','Available balance: ','الرصيد المتاح: ')}<b>{money(data.balanceCents/100)}</b> · {L('Retraits en attente : ','Pending withdrawals: ','السحوبات المعلقة: ')}<b>{money(data.pendingCents/100)}</b></p><small>{L('Net facturé − retraits marqués Payé par Atlas. Toutes périodes, hors filtre calendrier. Montant du dernier relevé importé ; la réception bancaire reste à vérifier.','Invoiced net minus withdrawals marked paid by Atlas. All time, independent of the calendar. Latest imported statement; bank receipt remains to be verified.','الصافي المفوتر ناقص السحوبات اللي Atlas معلّم عليها Payé. جميع الفترات بلا فلتر التقويم. المبلغ حسب آخر كشف دخلتيه؛ التوصل البنكي باقي خاصو التأكيد.')}</small></>:<p>{L('Importez le JSON du contrôle Atlas pour calculer le montant restant.','Import the Atlas control JSON to calculate the outstanding amount.','دخل JSON ديال مراقبة Atlas باش يتحسب المبلغ الباقي.')}</p>}{data&&Date.now()-Date.parse(data.asOf)>86400000&&<p role="status">{L('Ce relevé a plus de 24 heures. Importez un relevé récent pour connaître le montant actuel.','This statement is over 24 hours old. Import a recent statement for the current balance.','هاد الكشف فات 24 ساعة. دخل كشف جديد باش تعرف المبلغ الحالي.')}</p>}{error&&<p className="alert danger" role="alert">{error}</p>}</section>;
+
+type Receivable = {
+ snapshot: {asOf: string; count: number; grossCents: number; feesCents: number; netCents: number} | null;
+ refreshing: boolean;
+ unavailable: boolean;
+};
+
+export default function AtlasReceivable() {
+ const {language, money, locale} = useI18n();
+ const L = (fr: string, en: string, ar: string) => language === 'ar' ? ar : language === 'en' ? en : fr;
+ const [data, setData] = useState<Receivable | null>(null);
+ const [networkError, setNetworkError] = useState(false);
+
+ useEffect(() => {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout>;
+  async function load() {
+   let delay = 60_000;
+   try {
+    if (document.visibilityState === 'hidden') return;
+    const response = await fetch('/api/atlas-receivable', {cache: 'no-store', signal: controller.signal});
+    if (!response.ok) throw new Error('Atlas receivable unavailable');
+    const next: Receivable = await response.json();
+    setData(next);
+    setNetworkError(false);
+    if (next.refreshing) delay = 5_000;
+   } catch {
+    if (!controller.signal.aborted) setNetworkError(true);
+   } finally {
+    if (!controller.signal.aborted) timer = setTimeout(load, delay);
+   }
+  }
+  void load();
+  return () => { controller.abort(); clearTimeout(timer); };
+ }, []);
+
+ const balance = data?.snapshot;
+ const unavailable = networkError || data?.unavailable;
+ const title = L('À recevoir d’Atlas', 'Receivable from Atlas', 'شحال باقي خاص Atlas يدوّز ليك');
+ return <section className="settings-card atlas-receivable" aria-label={title}>
+  <div className="card-top"><h2><Wallet size={20}/> {title}</h2></div>
+  <strong className="atlas-receivable-amount">{balance ? money(balance.netCents / 100) : '—'}</strong>
+  <p>{L('Colis livrés et non facturés, toutes périodes.', 'Delivered, unbilled parcels across all dates.', 'الكوليات المسلّمة اللي مازال ما تفوتروش، جميع الفترات.')}</p>
+  {balance && <>
+   <p>{L('Colis : ', 'Parcels: ', 'الكوليات: ')}<b>{balance.count}</b> · COD <b>{money(balance.grossCents / 100)}</b> · {L('Frais : ', 'Fees: ', 'المصاريف: ')}<b>{money(balance.feesCents / 100)}</b></p>
+   <small>{L('Dernier calcul : ', 'Last calculated: ', 'آخر حساب: ')}{new Date(balance.asOf).toLocaleString(locale, {timeZone: 'Africa/Casablanca'})}</small>
+  </>}
+  {unavailable
+   ? <p role="status">{L('Actualisation Atlas indisponible. Nouvelle tentative automatique.', 'Atlas refresh unavailable. Retrying automatically.', 'تحديث Atlas ما خدامش دابا. غادي نعاودو تلقائياً.')}</p>
+   : (!data || data.refreshing) && <p role="status">{L('Calcul Atlas en cours…', 'Calculating Atlas receivables…', 'الحساب ديال Atlas كيتوجد…')}</p>}
+ </section>;
 }
