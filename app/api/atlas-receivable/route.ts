@@ -12,23 +12,23 @@ let refresh: Promise<void> | null = null;
 let retryAt = 0;
 let failed = false;
 
-async function readAtlas(key: string, path: string) {
+async function readAtlas<T>(key: string, path: string) {
  const result = await atlasFetch(base + path, {
   cache: 'no-store',
   headers: {'x-api-key': key},
   signal: AbortSignal.timeout(30_000),
  });
  if (!result.ok) throw new Error('Atlas HTTP ' + result.status);
- const body = await result.json();
- if (body.success !== true) throw new Error('Invalid Atlas response');
+ const body = await result.json() as {success?: boolean; data?: T; totalPages?: number} | null;
+ if (body?.success !== true) throw new Error('Invalid Atlas response');
  return body;
 }
 
 async function list<T>(key: string, path: string) {
  const rows: T[] = [];
  for (let page = 1; ; page++) {
-  const body = await readAtlas(key, path + '&limit=100&page=' + page);
-  if (!Array.isArray(body.data) || !Number.isSafeInteger(body.totalPages) ||
+  const body = await readAtlas<T[]>(key, path + '&limit=100&page=' + page);
+  if (!Array.isArray(body.data) || typeof body.totalPages !== 'number' || !Number.isSafeInteger(body.totalPages) ||
       body.totalPages < 0 || body.totalPages > 1000 || (body.totalPages > page && !body.data.length)) {
    throw new Error('Invalid Atlas pagination');
   }
@@ -57,7 +57,7 @@ async function calculate(key: string): Promise<Snapshot> {
   invoiceIds.add(invoice.id);
   let entry = invoiceLines.get(invoice.id);
   if (!entry || entry.version !== invoice.updatedAt || entry.expires < Date.now()) {
-   const {data} = await readAtlas(key, '/factures/' + encodeURIComponent(invoice.id));
+   const {data} = await readAtlas<{id: string; items: {colisCode?: string}[]}>(key, '/factures/' + encodeURIComponent(invoice.id));
    if (data?.id !== invoice.id || !Array.isArray(data.items) || data.items.length !== invoice.colisCount) {
     throw new Error('Incomplete Atlas invoice');
    }
