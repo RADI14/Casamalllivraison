@@ -1,3 +1,5 @@
+import {getSqlite} from '../../../server/sqlite';
+import {productPerformance,type WebsiteLead} from '../../product-performance';
 import {businessAnalytics} from '../../business-analytics';
 import {getActor} from '../../access';
 import {getDb} from '../../../db';
@@ -16,5 +18,8 @@ export async function GET(req:Request){
   report.members=report.members.filter(member=>!removed.has(member.email.trim().toLowerCase()));
   report.adBreakdown=report.adBreakdown.filter(row=>!removed.has(row.memberEmail.trim().toLowerCase()));
  }
- return Response.json({...report,analytics:businessAnalytics(o,e,from,to),shipments:o.filter(o=>o.tracking&&(!from||moroccoDay(o.createdAt)>=from)&&(!to||moroccoDay(o.createdAt)<=to)).map(o=>({id:o.id,tracking:o.tracking,client:JSON.parse(o.payload).fullname,product:JSON.parse(o.payload).product,...transportCost(o),actual:o.transportActualCents}))},{headers:{'Cache-Control':'private, no-store'}});
+ const website=q.get('view')==='dashboard'?null:getSqlite().connection.prepare(
+  'SELECT local_order_id,payload,received_at,review_status FROM youcan_orders WHERE store_id=? AND deleted_at IS NULL AND duplicate_of IS NULL'
+ ).all(process.env.YOUCAN_STORE_ID??'') as WebsiteLead[]|null;
+ return Response.json({...report,...(website?{productPerformance:productPerformance(p,o,website,e,from,to)}:{}),analytics:businessAnalytics(o,e,from,to),shipments:o.filter(o=>o.tracking&&(!from||moroccoDay(o.createdAt)>=from)&&(!to||moroccoDay(o.createdAt)<=to)).map(o=>({id:o.id,tracking:o.tracking,client:JSON.parse(o.payload).fullname,product:JSON.parse(o.payload).product,...transportCost(o),actual:o.transportActualCents}))},{headers:{'Cache-Control':'private, no-store'}});
 }
