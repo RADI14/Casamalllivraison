@@ -1,5 +1,5 @@
 import {getActor} from '../../access';
-import {atlasFetch} from '../../atlas-http';
+import {atlasFetch, retryAfterMs} from '../../atlas-http';
 
 type Parcel = {code: string; stateId: number; price: string | number; cfees: string | number};
 type Invoice = {id: string; type: string; updatedAt: string; colisCount: number};
@@ -12,16 +12,40 @@ let refresh: Promise<void> | null = null;
 let retryAt = 0;
 let failed = false;
 
+class AtlasReadError extends Error {
+ constructor(message: string, readonly retryDelayMs = 30_000) {
+  super(message);
+ }
+}
+
 async function readAtlas<T>(key: string, path: string) {
- const result = await atlasFetch(base + path, {
-  cache: 'no-store',
-  headers: {'x-api-key': key},
-  signal: AbortSignal.timeout(30_000),
- });
- if (!result.ok) throw new Error('Atlas HTTP ' + result.status);
- const body = await result.json() as {success?: boolean; data?: T; totalPages?: number} | null;
- if (body?.success !== true) throw new Error('Invalid Atlas response');
- return body;
+ for (const delay of [0, 2_000, 5_000]) {
+  if (delay) await new Promise(resolve => setTimeout(resolve, delay));
+  let result: Response;
+  try {
+   result = await atlasFetch(base + path, {
+    cache: 'no-store',
+    headers: {'x-api-key': key},
+    signal: AbortSignal.timeout(30_000),
+   });
+  } catch (error) {
+   if (!(error instanceof TypeError) &&
+       !(error instanceof DOMException && error.name === 'TimeoutError')) throw error;
+   if (delay === 5_000) throw new AtlasReadError('Atlas connection failed after three attempts');
+   continue;
+  }
+  if (result.status === 429) {
+   throw new AtlasReadError('Atlas HTTP 429', Math.max(30_000, retryAfterMs(result.headers.get('Retry-After'))));
+  }
+  if (result.status >= 500 && delay < 5_000) {
+   continue;
+  }
+  if (!result.ok) throw new AtlasReadError('Atlas HTTP ' + result.status, result.status >= 500 ? 30_000 : refreshMs);
+  const body = await result.json() as {success?: boolean; data?: T; totalPages?: number} | null;
+  if (body?.success !== true) throw new Error('Invalid Atlas response');
+  return body;
+ }
+ throw new AtlasReadError('Atlas read failed');
 }
 
 async function list<T>(key: string, path: string) {
@@ -101,7 +125,7 @@ export async function GET() {
   }).catch(error => {
    console.error('Atlas receivable refresh failed:', error instanceof Error ? error.message : 'Unknown error');
    failed = true;
-   retryAt = Date.now() + refreshMs;
+   retryAt = Date.now() + (error instanceof AtlasReadError ? error.retryDelayMs : refreshMs);
   }).finally(() => { refresh = null; });
  }
  return Response.json({snapshot, refreshing: !!refresh, unavailable: !key || failed}, {
