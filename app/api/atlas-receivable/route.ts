@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+import {getSqlite} from '../../../server/sqlite';
 import {getActor} from '../../access';
 import {atlasFetch, retryAfterMs} from '../../atlas-http';
 
@@ -118,7 +120,14 @@ export async function GET() {
  }
  const key = process.env.ATLAS_API_KEY;
  if (key && !refresh && Date.now() >= retryAt) {
+  const db = getSqlite().connection;
+  const scope = createHash('sha256').update(key).digest('hex');
+  if (!snapshot) {
+   const saved = db.prepare('SELECT snapshot FROM atlas_receivable_snapshots WHERE scope=?').get(scope) as {snapshot:string}|undefined;
+   if (saved) snapshot = JSON.parse(saved.snapshot) as Snapshot;
+  }
   refresh = calculate(key).then(value => {
+   db.prepare('INSERT INTO atlas_receivable_snapshots(scope,snapshot) VALUES(?,?) ON CONFLICT(scope) DO UPDATE SET snapshot=excluded.snapshot').run(scope,JSON.stringify(value));
    snapshot = value;
    failed = false;
    retryAt = Date.now() + refreshMs;
