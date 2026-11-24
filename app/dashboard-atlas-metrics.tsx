@@ -18,7 +18,7 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
  const [metric,setMetric]=useState<'count'|'entered'>('count');
  const label=metric==='count'?deliveredLabel:enteredLabel;
  const color=metric==='count'?'var(--overview-delivered)':'var(--overview-entered)';
- const peak=Math.max(1,...(data?.dailyDeliveries??[]).map(row=>row[metric]));
+ const dailyGoal=100;
  const stock=data?.inventory.stock,transit=data?.inventory.transit;
  const value=(row:Value|null|undefined)=>row?money(row.cents/100)+(row.missing?' *':''):'—';
  const total=stock&&transit?{cents:stock.cents+transit.cents,missing:stock.missing+transit.missing}:null;
@@ -34,8 +34,8 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
    <ul className="overview-week">
     {data?.dailyDeliveries.map(row=><li key={row.date}>
       <time dateTime={row.date}>{row.date.slice(8)}/{row.date.slice(5,7)}</time>
-      <span className="overview-ring-track" style={{background:`conic-gradient(${color} ${row[metric]/peak*100}%, var(--line) 0)`}}>
-       <span aria-label={label+' '+row[metric]}>{row[metric]}</span>
+      <span className="overview-ring-track" style={{background:`conic-gradient(${color} ${Math.min(row[metric]/dailyGoal*100,100)}%, var(--line) 0)`}}>
+       <span aria-label={label+' '+row[metric]+' / '+dailyGoal}>{row[metric]}<small className="overview-ring-goal">/ {dailyGoal}</small></span>
       </span>
     </li>)}
    </ul>

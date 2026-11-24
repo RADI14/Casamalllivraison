@@ -100,3 +100,6 @@
 
 .overview-week-legend button { padding: 5px 9px; border: 1px solid var(--line); border-radius: 999px; }
 .overview-week-legend button[aria-pressed="true"] { border-color: currentColor; color: var(--ink); font-weight: 700; }
+
+.admin-overview .overview-ring-goal { margin: 0; color: var(--muted); font-size: 8px; line-height: 1; }
+.overview-week .overview-ring-track > span { align-content: center; line-height: 1.1; }
