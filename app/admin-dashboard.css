@@ -1,0 +1,53 @@
+.admin-overview {
+  --overview-accent: #a593f4;
+  display: grid;
+  gap: 24px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.admin-overview .simple-dashboard-toolbar { margin: 0; }
+.overview-section { display: grid; gap: 12px; min-width: 0; }
+.admin-overview .overview-section > h2,
+.admin-overview .simple-agent-section > h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -.02em;
+}
+.overview-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.overview-kpi {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.overview-kpi-label { display: flex; justify-content: space-between; align-items: start; gap: 10px; font-weight: 650; }
+.overview-kpi-label svg { color: var(--overview-accent); flex: none; }
+.overview-kpi strong { font-size: clamp(1.35rem, 2.5vw, 2.1rem); line-height: 1.15; overflow-wrap: anywhere; }
+.overview-kpi small { color: var(--muted); line-height: 1.4; }
+.admin-overview .dashboard-atlas-summary { grid-template-columns: minmax(235px, .85fr) minmax(0, 1.65fr); gap: 12px; }
+.admin-overview .dashboard-atlas-summary .settings-card { margin: 0; border-radius: 16px; min-width: 0; }
+.admin-overview .atlas-receivable { border-block-start: 3px solid var(--overview-accent); }
+.admin-overview .dashboard-atlas-metrics { gap: clamp(14px, 2vw, 28px); }
+.admin-overview .dashboard-atlas-metrics dd { overflow-wrap: anywhere; }
+.admin-overview .overview-delivery-chart dd { display: flex; align-items: center; gap: 8px; flex: 1; }
+.overview-delivery-chart b { min-inline-size: 2ch; }
+.overview-delivery-track { display: block; flex: 1; height: 7px; border-radius: 99px; background: color-mix(in srgb, var(--overview-accent) 17%, transparent); }
+.overview-delivery-track > span { display: block; height: 100%; border-radius: inherit; background: var(--overview-accent); }
+.admin-overview .individual-agent-panel { border-radius: 16px; --agent-accent: #7862cf; }
+@media (max-width: 1100px) {
+  .admin-overview .dashboard-atlas-summary { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 650px) {
+  .admin-overview { gap: 18px; }
+  .overview-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .overview-kpi-label svg { display: none; }
+}
