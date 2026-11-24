@@ -86,6 +86,7 @@
 .overview-inventory-share { display: flex; align-items: center; gap: 10px; margin-block: 8px 14px; }
 .admin-overview .overview-inventory-share small { margin: 0; color: var(--ink); }
 
+.admin-overview { --overview-delivered: #22c55e; --overview-entered: #f97316; }
 .overview-week-legend, .overview-week-counts { display: flex; gap: 12px; flex-wrap: wrap; }
 .overview-week-legend { color: var(--muted); font-size: 12px; }
 .overview-week { display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 12px 8px; padding: 0; margin: 12px 0 0; list-style: none; }
@@ -94,5 +95,5 @@
 .overview-week .overview-ring-track { inline-size: 38px; block-size: 38px; }
 .overview-week .overview-ring-track > span { inline-size: 27px; block-size: 27px; }
 .overview-week-counts { gap: 7px; justify-content: center; font-size: 12px; }
-.overview-delivered-key::before, .overview-entered-key::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-inline-end: 4px; border-radius: 50%; background: var(--overview-teal); vertical-align: middle; }
-.overview-entered-key::before { background: var(--overview-violet); }
+.overview-delivered-key::before, .overview-entered-key::before { content: ''; display: inline-block; width: 6px; height: 6px; margin-inline-end: 4px; border-radius: 50%; background: var(--overview-delivered); vertical-align: middle; }
+.overview-entered-key::before { background: var(--overview-entered); }

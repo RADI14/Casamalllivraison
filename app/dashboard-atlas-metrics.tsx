@@ -32,7 +32,7 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
      const share=total?row.count/total*100:0;
      return <li key={row.date}>
       <time dateTime={row.date}>{row.date.slice(8)}/{row.date.slice(5,7)}</time>
-      <span className="overview-ring-track" aria-hidden="true" style={{background:total?`conic-gradient(var(--overview-teal) ${share}%, var(--overview-violet) 0)`:'var(--line)'}}><span/></span>
+      <span className="overview-ring-track" aria-hidden="true" style={{background:total?`conic-gradient(var(--overview-delivered) ${share}%, var(--overview-entered) 0)`:'var(--line)'}}><span/></span>
       <span className="overview-week-counts">
        <b className="overview-delivered-key" aria-label={deliveredLabel+' '+row.count}>{row.count}</b>
        <b className="overview-entered-key" aria-label={enteredLabel+' '+row.entered}>{row.entered}</b>
