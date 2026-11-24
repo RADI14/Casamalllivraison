@@ -4,7 +4,7 @@ import {useI18n} from './i18n';
 
 type Value = {cents:number;missing:number};
 type Metrics = {
- dailyDeliveries:{date:string;count:number}[];
+ dailyDeliveries:{date:string;count:number;entered:number}[];
  undated:number;
  inventory:{stock:Value|null;stockAsOf?:number;transit:Value};
 };
@@ -12,7 +12,8 @@ type Metrics = {
 export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
  const {language,money,locale}=useI18n();
  const L=(fr:string,en:string,ar:string)=>language==='ar'?ar:language==='en'?en:fr;
- const peak=Math.max(1,...(data?.dailyDeliveries??[]).map(row=>row.count));
+ const deliveredLabel=L('Livrées','Delivered','تسلّمو');
+ const enteredLabel=L('Saisies','Entered','تسجلو');
  const stock=data?.inventory.stock,transit=data?.inventory.transit;
  const value=(row:Value|null|undefined)=>row?money(row.cents/100)+(row.missing?' *':''):'—';
  const total=stock&&transit?{cents:stock.cents+transit.cents,missing:stock.missing+transit.missing}:null;
@@ -20,11 +21,25 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
  const shareLabel=stockShare===null?'':L('Stock ','Stock ','الستوك ')+Math.round(stockShare)+'% · '+L('Transit ','Transit ','الترانزيت ')+(100-Math.round(stockShare))+'%';
  return <div className="settings-card dashboard-atlas-metrics">
   <section>
-   <h2>{L('Commandes livrées par jour','Delivered orders by day','الطلبات المسلّمة فالنهار')}</h2>
-   <dl className="overview-delivery-chart">{data?.dailyDeliveries.map(row=><div key={row.date}>
-    <dt><time dateTime={row.date}>{row.date.slice(8)}/{row.date.slice(5,7)}</time></dt>
-    <dd><span aria-hidden="true" className="overview-delivery-track"><span style={{inlineSize:`${row.count/peak*100}%`}}/></span><b>{row.count}</b></dd>
-   </div>)}</dl>
+   <h2>{L('Commandes · 7 derniers jours','Orders · Last 7 days','الطلبات · آخر 7 أيام')}</h2>
+   <div className="overview-week-legend">
+    <span className="overview-delivered-key">{deliveredLabel}</span>
+    <span className="overview-entered-key">{enteredLabel}</span>
+   </div>
+   <ul className="overview-week">
+    {data?.dailyDeliveries.map(row=>{
+     const total=row.count+row.entered;
+     const share=total?row.count/total*100:0;
+     return <li key={row.date}>
+      <time dateTime={row.date}>{row.date.slice(8)}/{row.date.slice(5,7)}</time>
+      <span className="overview-ring-track" aria-hidden="true" style={{background:total?`conic-gradient(var(--overview-teal) ${share}%, var(--overview-violet) 0)`:'var(--line)'}}><span/></span>
+      <span className="overview-week-counts">
+       <b className="overview-delivered-key" aria-label={deliveredLabel+' '+row.count}>{row.count}</b>
+       <b className="overview-entered-key" aria-label={enteredLabel+' '+row.entered}>{row.entered}</b>
+      </span>
+     </li>;
+    })}
+   </ul>
    {!data&&<p>—</p>}
    {!!data?.undated&&<small>{data.undated} {L('livraisons sans date Atlas','deliveries without an Atlas date','تسليمات بلا تاريخ Atlas')}</small>}
   </section>

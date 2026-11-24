@@ -39,6 +39,14 @@ export function simpleDashboard(input:any,month:string,today=moroccoDay(new Date
  const charges=m.totalCosts+extra;
  return {dayOrders:own.filter((o:any)=>moroccoDay(o.createdAt)===tableDay).length,monthOrders:monthOrders.length,monthDelivered:monthFinance.delivered,monthAds:monthFinance.ads,monthProfit,monthCommission:monthFinance.commission,monthCommissionDue,allTimeCommissionDue,unpaidCommissionOrders:outstanding.length,monthDeliveryRate:monthOrders.length?cohortDelivered/monthOrders.length*100:null,cohortDelivered,daily:[...daily.values()].sort((a,b)=>a.date.localeCompare(b.date)),undatedDeliveries:unknown,email:m.email,name:m.name,active:input.team.find((t:any)=>normalizeEmail(t.email)===normalizeEmail(m.email))?.active===1,todayOrders:own.filter((o:any)=>moroccoDay(o.createdAt)===today).length,yesterdayOrders:own.filter((o:any)=>moroccoDay(o.createdAt)===yesterday).length,periodOrders:own.filter((o:any)=>inside(moroccoDay(o.createdAt))).length,delivered:m.delivered,revenue:m.revenue,ads:m.ads,charges,profit:m.missingCost||m.missingTransport||missing||unknown?null:m.revenue-charges,commission:m.commission,commissionDue};
  }).sort((a:any,b:any)=>b.periodOrders-a.periodOrders||a.name.localeCompare(b.name));
- const dailyDeliveries=Array.from({length:10},(_,i)=>{const date=shiftDay(tableDay,-i);return {date,count:deliveredByDay.get(date)??0}}).filter(row=>inside(row.date));
+ const enteredByDay=new Map<string,number>();
+ for(const order of records){
+  const day=moroccoDay(order.createdAt);
+  enteredByDay.set(day,(enteredByDay.get(day)??0)+1);
+ }
+ const dailyDeliveries=Array.from({length:7},(_,i)=>{
+  const date=shiftDay(today,-i);
+  return {date,count:deliveredByDay.get(date)??0,entered:enteredByDay.get(date)??0};
+ });
  return {members,dailyDeliveries,monthlyProfit:monthProfit,monthlyOverheads:monthReport.total.overheads,monthlyBeforeOverheads:monthProfit===null?null:monthProfit+monthReport.total.overheads,tableDay,tableMonth,month,from,to,today,yesterday,todayOrders:records.filter((o:any)=>moroccoDay(o.createdAt)===today).length,yesterdayOrders:records.filter((o:any)=>moroccoDay(o.createdAt)===yesterday).length,monthOrders:monthly.length,periodOrders:monthly.length,revenue:total.revenue,profit:total.net,charges:total.totalCosts,commission:total.commission,commissionDue:due,allTimeCommissionDue,missingCost:total.missingCost,missingTransport:total.missingTransport,undated,asOf:new Date().toISOString()};
 }

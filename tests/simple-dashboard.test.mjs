@@ -18,7 +18,13 @@ test('general monthly charges never reduce daily profit and appear once in month
 
 test('ad spend under each agent shortcut uses the full displayed month, including converted DH amounts',()=>{const expenses=[{date:'2026-10-01',category:'ads',memberEmail:'a@test.com',amountCents:9500,currency:'USD',originalAmountCents:1000},{date:'2026-10-28',category:'ads',memberEmail:'a@test.com',amountCents:2000},{date:'2026-11-01',category:'ads',memberEmail:'a@test.com',amountCents:5000},{date:'2026-10-28',category:'ads',memberEmail:'other@test.com',amountCents:9999},{date:'2026-10-01',accountingMonth:'2026-10',category:'hosting',amountCents:8000}];const r=simpleDashboard({...base,expenses},'2026-10','2026-10-29',{from:'2026-10-28',to:'2026-10-28'});assert.equal(r.members[0].ads,2000);assert.equal(r.members[0].monthAds,11500);const next=simpleDashboard({...base,expenses},'2026-11','2026-11-02');assert.equal(next.members[0].monthAds,5000);const empty=simpleDashboard({...base,expenses:[]},'2026-10','2026-10-29');assert.equal(empty.members[0].monthAds,0)});
 
-test('daily deliveries use the Atlas delivery date and display zero-count days',()=>{
- const result=simpleDashboard(base,'2026-10','2026-10-29',{from:'2026-10-27',to:'2026-10-31'});
- assert.deepEqual(result.dailyDeliveries,[{date:'2026-10-29',count:0},{date:'2026-10-28',count:1},{date:'2026-10-27',count:0}]);
+test('rolling week groups creations and Atlas deliveries independently of the calendar filter',()=>{
+ const result=simpleDashboard(base,'2026-10','2026-10-29',{from:'2026-10-29',to:'2026-10-29'});
+ assert.equal(result.dailyDeliveries.length,7);
+ assert.deepEqual(result.dailyDeliveries.slice(0,3),[
+  {date:'2026-10-29',count:0,entered:1},
+  {date:'2026-10-28',count:1,entered:1},
+  {date:'2026-10-27',count:0,entered:0}
+ ]);
+ assert.equal(result.dailyDeliveries.at(-1).date,'2026-10-23');
 });
