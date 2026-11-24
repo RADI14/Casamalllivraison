@@ -44,9 +44,9 @@ export function simpleDashboard(input:any,month:string,today=moroccoDay(new Date
   const day=moroccoDay(order.createdAt);
   enteredByDay.set(day,(enteredByDay.get(day)??0)+1);
  }
- const dailyDeliveries=Array.from({length:7},(_,i)=>{
-  const date=shiftDay(today,-i);
-  return {date,count:deliveredByDay.get(date)??0,entered:enteredByDay.get(date)??0};
- });
+ const dailyDeliveries=[];
+ for(let date=to;date>=from;date=shiftDay(date,-1)){
+  dailyDeliveries.push({date,count:deliveredByDay.get(date)??0,entered:enteredByDay.get(date)??0});
+ }
  return {members,dailyDeliveries,monthlyProfit:monthProfit,monthlyOverheads:monthReport.total.overheads,monthlyBeforeOverheads:monthProfit===null?null:monthProfit+monthReport.total.overheads,tableDay,tableMonth,month,from,to,today,yesterday,todayOrders:records.filter((o:any)=>moroccoDay(o.createdAt)===today).length,yesterdayOrders:records.filter((o:any)=>moroccoDay(o.createdAt)===yesterday).length,monthOrders:monthly.length,periodOrders:monthly.length,revenue:total.revenue,profit:total.net,charges:total.totalCosts,commission:total.commission,commissionDue:due,allTimeCommissionDue,missingCost:total.missingCost,missingTransport:total.missingTransport,undated,asOf:new Date().toISOString()};
 }

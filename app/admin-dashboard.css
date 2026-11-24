@@ -89,7 +89,7 @@
 .admin-overview { --overview-delivered: #22c55e; --overview-entered: #f97316; }
 .overview-week-legend, .overview-week-counts { display: flex; gap: 12px; flex-wrap: wrap; }
 .overview-week-legend { color: var(--muted); font-size: 12px; }
-.overview-week { display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 12px 8px; padding: 0; margin: 12px 0 0; list-style: none; }
+.overview-week { display: grid; grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); gap: 12px 8px; padding: 0; margin: 12px 0 0; list-style: none; max-block-size: 300px; overflow-y: auto; }
 .overview-week li { display: grid; justify-items: center; gap: 5px; }
 .overview-week time { font-size: 12px; color: var(--muted); }
 .overview-week .overview-ring-track { inline-size: 50px; block-size: 50px; }

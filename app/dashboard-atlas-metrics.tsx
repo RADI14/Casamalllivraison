@@ -13,7 +13,6 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
  const {language,money,locale}=useI18n();
  const L=(fr:string,en:string,ar:string)=>language==='ar'?ar:language==='en'?en:fr;
  const deliveredLabel=L('Livrées','Delivered','تسلّمو');
- const percent=new Intl.NumberFormat(locale,{style:'percent',maximumFractionDigits:1});
  const enteredLabel=L('Saisies','Entered','تسجلو');
  const stock=data?.inventory.stock,transit=data?.inventory.transit;
  const value=(row:Value|null|undefined)=>row?money(row.cents/100)+(row.missing?' *':''):'—';
@@ -22,20 +21,18 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
  const shareLabel=stockShare===null?'':L('Stock ','Stock ','الستوك ')+Math.round(stockShare)+'% · '+L('Transit ','Transit ','الترانزيت ')+(100-Math.round(stockShare))+'%';
  return <div className="settings-card dashboard-atlas-metrics">
   <section>
-   <h2>{L('Commandes · 7 derniers jours','Orders · Last 7 days','الطلبات · آخر 7 أيام')}</h2>
+   <h2>{L('Commandes par jour','Orders by day','الطلبات حسب النهار')}</h2>
    <div className="overview-week-legend">
     <span className="overview-delivered-key">{deliveredLabel}</span>
     <span className="overview-entered-key">{enteredLabel}</span>
    </div>
-   <small>{L('Taux du jour = livrées ÷ saisies','Daily rate = delivered ÷ entered','نسبة النهار = تسلّمو ÷ تسجلو')}</small>
    <ul className="overview-week">
     {data?.dailyDeliveries.map(row=>{
      const total=row.count+row.entered;
      const share=total?row.count/total*100:0;
-     const rate=row.entered?percent.format(row.count/row.entered):'—';
      return <li key={row.date}>
       <time dateTime={row.date}>{row.date.slice(8)}/{row.date.slice(5,7)}</time>
-      <span className="overview-ring-track" style={{background:total?`conic-gradient(var(--overview-delivered) ${share}%, var(--overview-entered) 0)`:'var(--line)'}}><span>{rate}</span></span>
+      <span className="overview-ring-track" aria-hidden="true" style={{background:total?`conic-gradient(var(--overview-delivered) ${share}%, var(--overview-entered) 0)`:'var(--line)'}}><span/></span>
       <span className="overview-week-counts">
        <b className="overview-delivered-key" aria-label={deliveredLabel+' '+row.count}>{row.count}</b>
        <b className="overview-entered-key" aria-label={enteredLabel+' '+row.entered}>{row.entered}</b>
