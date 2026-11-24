@@ -51,3 +51,37 @@
   .overview-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .overview-kpi-label svg { display: none; }
 }
+
+.admin-overview {
+  --overview-teal: #2cb99b;
+  --overview-violet: #9d83ec;
+  --overview-amber: #ea9f4f;
+}
+.overview-kpi { --card-accent: var(--overview-violet); border-inline-start: 3px solid var(--card-accent); }
+.overview-kpi:nth-child(3n+2) { --card-accent: var(--overview-teal); }
+.overview-kpi:nth-child(3n+3) { --card-accent: var(--overview-amber); }
+.overview-kpi-label svg { color: var(--card-accent); }
+.admin-overview .atlas-receivable { border-block-start-color: var(--overview-teal); }
+.overview-delivery-track > span { background: var(--overview-teal); }
+.overview-ring { display: inline-flex; }
+.overview-ring-track {
+  display: grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  border-radius: 50%;
+  flex: none;
+}
+.overview-ring-track > span {
+  display: grid;
+  place-items: center;
+  inline-size: 43px;
+  block-size: 43px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 750;
+}
+.overview-inventory-share { display: flex; align-items: center; gap: 10px; margin-block: 8px 14px; }
+.admin-overview .overview-inventory-share small { margin: 0; color: var(--ink); }

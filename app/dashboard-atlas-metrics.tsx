@@ -16,6 +16,8 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
  const stock=data?.inventory.stock,transit=data?.inventory.transit;
  const value=(row:Value|null|undefined)=>row?money(row.cents/100)+(row.missing?' *':''):'—';
  const total=stock&&transit?{cents:stock.cents+transit.cents,missing:stock.missing+transit.missing}:null;
+ const stockShare=total&&total.cents>0&&!total.missing?stock!.cents/total.cents*100:null;
+ const shareLabel=stockShare===null?'':L('Stock ','Stock ','الستوك ')+Math.round(stockShare)+'% · '+L('Transit ','Transit ','الترانزيت ')+(100-Math.round(stockShare))+'%';
  return <div className="settings-card dashboard-atlas-metrics">
   <section>
    <h2>{L('Commandes livrées par jour','Delivered orders by day','الطلبات المسلّمة فالنهار')}</h2>
@@ -28,6 +30,10 @@ export default function DashboardAtlasMetrics({data}:{data:Metrics|null}){
   </section>
   <section>
    <h2>{L('Valeur au coût d’achat','Value at purchase cost','القيمة بثمن الشراء')}</h2>
+   {stockShare!==null&&<div className="overview-inventory-share">
+    <span className="overview-ring-track" aria-hidden="true" style={{background:`conic-gradient(var(--overview-violet) ${stockShare}%, var(--overview-amber) 0)`}}><span/></span>
+    <small>{shareLabel}</small>
+   </div>}
    <dl>
     <div><dt>{L('Stock Atlas disponible','Available Atlas stock','الستوك المتوفر فـ Atlas')}</dt><dd>{value(stock)}</dd></div>
     <div><dt>{L('Colis en transit','Parcels in transit','الكوليات فطريق التوصيل')}</dt><dd>{value(transit)}</dd></div>
