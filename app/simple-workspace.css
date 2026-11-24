@@ -71,3 +71,13 @@
 .atlas-receivable-amount{font-size:2rem;color:var(--text)}
 .atlas-receivable .card-top{flex-wrap:wrap;gap:12px}
 .atlas-receivable h2{display:flex;align-items:center;gap:8px}
+
+.dashboard-atlas-summary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:14px}
+.dashboard-atlas-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.dashboard-atlas-metrics h2{font-size:1rem;margin:0 0 12px}
+.dashboard-atlas-metrics dl{margin:0}
+.dashboard-atlas-metrics dl div{display:flex;justify-content:space-between;gap:8px;padding:4px 0}
+.dashboard-atlas-metrics dd{margin:0;font-weight:700;text-align:end}
+.dashboard-atlas-metrics small{display:block;margin-top:8px}
+@media(max-width:1050px){.dashboard-atlas-summary{grid-template-columns:1fr}}
+@media(max-width:560px){.dashboard-atlas-metrics{grid-template-columns:1fr}}

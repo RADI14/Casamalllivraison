@@ -2,9 +2,10 @@ import {moroccoDay,validDay} from './team-statistics.ts';
 import {financialReport} from './finance-rules.ts';
 import {normalizeEmail} from './rules.ts';
 export function monthRange(month:string){if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)||!validDay(month+'-01'))throw Error('Mois invalide.');const last=new Date(month+'-01T12:00:00Z');last.setUTCMonth(last.getUTCMonth()+1,0);return {from:month+'-01',to:last.toISOString().slice(0,10)};}
+export function isOpenParcel(o:{tracking:string|null;status:string;atlasState:number|null;atlasStateName?:string|null}){return !!(o.tracking&&o.status!=='cancelled'&&o.atlasState!==17&&!/^retourn[ée]s?$/i.test((o.atlasStateName??'').trim()));}
 export function agingAlerts(orders:any[],settings:{age_days:number;sync_days:number},now=Date.now()){
  const days=(date:string|null)=>date&&Number.isFinite(Date.parse(date))?Math.max(0,Math.floor((now-Date.parse(date))/86400000)):null;
- return orders.filter(o=>o.tracking&&o.status!=='cancelled'&&o.atlasState!==17&&!/^retourn[ée]s?$/i.test((o.atlasStateName??'').trim())).flatMap(o=>{
+ return orders.filter(isOpenParcel).flatMap(o=>{
  const age=days(o.createdAt),syncAge=days(o.syncedAt),reasons=[];if(age!==null&&age>=settings.age_days)reasons.push('old');if(syncAge===null||syncAge>=settings.sync_days)reasons.push('sync');if(!reasons.length)return [];
  const p=typeof o.payload==='string'?JSON.parse(o.payload):o.payload;return [{id:o.id,tracking:o.tracking,client:p.fullname,product:p.product,agent:o.createdBy,state:o.atlasStateName??o.status,age,syncAge,reasons,createdAt:o.createdAt,syncedAt:o.syncedAt}];
  }).sort((a,b)=>(b.age??0)-(a.age??0));
