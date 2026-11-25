@@ -2,6 +2,7 @@
 .shell .website-workflow .card-top{background:linear-gradient(110deg,#f0ebff,#f8faff);border-bottom:1px solid var(--line)}
 .shell .website-workflow .card-top h2>span{background:#e7ddff;color:#603bb0;border-color:#d8c8fb;font-weight:750}
 .shell .website-workflow .website-toolbar{padding:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.shell .website-workflow .website-search{flex:1 1 280px;min-width:0;min-height:42px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#172036}
 .shell .website-workflow [data-status]{--website-state:#315fc0;--website-tint:#edf3ff;--website-edge:#bfd0f6}
 .shell .website-workflow [data-status=no_reply_1]{--website-state:#8a6206;--website-tint:#fff8df;--website-edge:#ead38b}
 .shell .website-workflow [data-status=no_reply_2]{--website-state:#a34e15;--website-tint:#fff0e4;--website-edge:#f1c09b}
