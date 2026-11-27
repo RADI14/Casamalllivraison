@@ -245,3 +245,5 @@ Object.assign(translations,{"Products": {"en": "Products", "fr": "Produits", "ar
 Object.assign(translations,{"Choose an agent for advertising.": {"en": "Choose an agent for advertising.", "fr": "Choisissez une collaboratrice pour la publicité.", "ar": "اختار البنت لمصاريف الإعلانات."}, "Advertising is assigned only to the agent and date, without product allocation.": {"en": "Advertising is assigned only to the agent and date, without product allocation.", "fr": "La publicité est affectée uniquement à la collaboratrice et à la date, sans lien avec les produits.", "ar": "الإعلانات كتتحسب غير حسب البنت والنهار، بلا ربط بالمنتجات."}, "Ad spend by agent": {"en": "Ad spend by agent", "fr": "Dépenses publicitaires par collaboratrice", "ar": "مصاريف الإعلانات حسب البنت"}});
 
 Object.assign(translations,{'Ad spend history':{fr:'Historique des dépenses publicitaires',en:'Ad spend history',ar:'تاريخ مصاريف الإعلانات'}});
+
+Object.assign(translations, {'General ad spend': {fr: 'Ads générales (sans collaboratrice)', en: 'General ad spend (no collaborator)', ar: 'مصاريف إعلانات عامة (بدون متعاونة)'}});
