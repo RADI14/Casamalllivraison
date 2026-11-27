@@ -1,4 +1,9 @@
 import {cents} from './finance-rules.ts';
+
+export function normalizeAtlasProductName(name: unknown): string {
+ return typeof name === 'string' ? name.normalize('NFC').trim().replace(/\s+/g, ' ') : '';
+}
+
 /** Atlas owns parcel details; local authorship and accounting records stay local. */
 export function atlasOrderSnapshot(saved:Record<string,any>,remote:Record<string,any>){
  const payload={...saved};
@@ -19,8 +24,8 @@ export function atlasOrderSnapshot(saved:Record<string,any>,remote:Record<string
   if(typeof remote[field]==='boolean')payload[field]=remote[field];
   else if(remote[field]===0||remote[field]===1)payload[field]=remote[field]===1;
  }
- const productChanged=payload.product!==saved.product||(Array.isArray(saved.stockItems)&&saved.stockItems.length>1&&payload.quantity!==saved.quantity);
- // A changed product description cannot prove the SKU or purchase cost of the new item.
+ const productChanged=normalizeAtlasProductName(payload.product)!==normalizeAtlasProductName(saved.product)||(Array.isArray(saved.stockItems)&&saved.stockItems.length>1&&payload.quantity!==saved.quantity);
+ // Formatting changes preserve the link. A different product name invalidates it.
  if(productChanged){delete payload.atlasSku;delete payload.stockItems;}
  else if(Array.isArray(saved.stockItems)&&saved.stockItems.length===1&&payload.quantity!==saved.quantity)payload.stockItems=[{...saved.stockItems[0],quantity:payload.quantity}];
  const stateName=typeof remote.stateName==='string'?remote.stateName:null;

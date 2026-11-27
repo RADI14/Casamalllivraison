@@ -13,6 +13,11 @@ test('fill missing saved costs by exact identity, packs and complete mixed parce
  add('mixed',{quantity:3,stockItems:[{stockId:'a',quantity:1},{stockId:'b',quantity:2}]});
  add('old',{quantity:2,product:'Grinder 8'},'a',3000);add('old-total',{quantity:2,product:'Grinder 8'},'a',null,5500);
  add('ambiguous',{quantity:1,product:'Ambiguous'});add('unknown-sku',{quantity:1,atlasSku:'UNKNOWN',product:'Serum'});add('bad-mixed',{quantity:2,stockItems:[{stockId:'a',quantity:1},{stockId:'unknown',quantity:1}]});add('not-delivered',{quantity:1,atlasSku:'A'},null,null,null,1);
+ add('atlas-format',{quantity:1,product:'  Grinder   8 '});
+ const batch=reconcilePurchaseCosts(db,undefined,['atlas-format']);
+ assert.equal(batch.updated,1);
+ assert.equal(db.prepare("SELECT unit_cost_cents FROM orders WHERE id='sku'").get().unit_cost_cents,null);
+ assert.equal(db.prepare("SELECT purchase_total_cents FROM orders WHERE id='atlas-format'").get().purchase_total_cents,4000);
  const result=reconcilePurchaseCosts(db);assert.equal(result.updated,6);assert.equal(result.remaining,3);
  const get=id=>db.prepare('SELECT payload,unit_cost_cents AS unitCostCents,purchase_total_cents AS purchaseTotalCents FROM orders WHERE id=?').get(id);
  assert.equal(purchaseCost(get('id')),8000);assert.equal(purchaseCost(get('sku')),6000);assert.equal(purchaseCost(get('pack')),8000);assert.equal(purchaseCost(get('explicit-pack')),8000);assert.equal(purchaseCost(get('mixed')),8000);
