@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState,useId} from 'react';
 import {ChevronDown,Check} from 'lucide-react';
 import {useI18n} from './i18n';
-type Product={id:string;name:string;sku:string;stock?:number;inStock?:boolean;frozen?:boolean;saleCents:number};
+type Product={id:string;name:string;sku:string;stock?:number;inStock?:boolean;frozen?:boolean};
 export default function StockPicker({products,selectedId,disabled,onSelect}:{products:Product[];selectedId:string;disabled:boolean;onSelect:(product:Product|null)=>void}){
  const pickerId=useId();const {t}=useI18n(),[open,setOpen]=useState(false),[query,setQuery]=useState(''),[active,setActive]=useState(0),listRef=useRef<HTMLDivElement>(null);
  const selected=products.find(p=>p.id===selectedId);const normalize=(v:string)=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();const filtered=products.filter(p=>((p.stock??0)>0||p.inStock)&&!p.frozen&&normalize(p.name+' '+p.sku).includes(normalize(query)));

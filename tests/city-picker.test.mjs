@@ -5,13 +5,12 @@ import {createRequire} from 'node:module';
 import vm from 'node:vm';
 import ts from 'typescript';
 import React from 'react';
-import {orderPrice} from '../app/order-price.ts';
 const require=createRequire(import.meta.url);
 function harness(){
  const states=[];let cursor=0;
  const module={exports:{}};
  const js=ts.transpileModule(readFileSync(new URL('../app/order-form.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
- vm.runInNewContext(js,{module,exports:module.exports,require:id=>id==='react'?{...React,useState:initial=>{const i=cursor++;if(!(i in states))states[i]=initial;return [states[i],v=>{states[i]=typeof v==='function'?v(states[i]):v}];}}:id==='./i18n'?{useI18n:()=>({t:s=>s})}:id==='./order-price'?{orderPrice}:id==='./whatsapp-order'?{parseWhatsAppOrder:()=>({})}:id==='./stock-picker'?{__esModule:true,default:()=>null}:require(id)});
+ vm.runInNewContext(js,{module,exports:module.exports,require:id=>id==='react'?{...React,useState:initial=>{const i=cursor++;if(!(i in states))states[i]=initial;return [states[i],v=>{states[i]=typeof v==='function'?v(states[i]):v}];}}:id==='./i18n'?{useI18n:()=>({t:s=>s})}:id==='./whatsapp-order'?{parseWhatsAppOrder:()=>({})}:id==='./stock-picker'?{__esModule:true,default:()=>null}:require(id)});
  const value={fullname:'Client',phone:'0612345678',phone2:'',address:'Rue des Fleurs',price:199,product:'Press',quantity:1,cityId:'',cityName:'',note:''};
  const props={value,atlas:{configured:true,cities:[{id:'kenitra-id',name:'Kénitra'},{id:'rabat-id',name:'Rabat'}],stores:[],stockReady:true},catalog:[],onChange:next=>{props.value=next},onSubmit:()=>{},onRefresh:()=>{},onClose:()=>{}};
  function find(node,predicate){if(!node)return;if(Array.isArray(node)){for(const child of node){const found=find(child,predicate);if(found)return found}}else if(typeof node==='object'){if(predicate(node))return node;return find(node.props?.children,predicate)}}

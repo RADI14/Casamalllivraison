@@ -1,4 +1,19 @@
 export const translations:Record<string,{fr:string;en:string;ar:string}>={
+  "Enter the COD total for this parcel.": {
+    fr: "Saisissez le montant total à encaisser pour ce colis.",
+    en: "Enter the COD total for this parcel.",
+    ar: "أدخل المبلغ الإجمالي للتحصيل عند تسليم هذا الطرد."
+  },
+  "Match each purchase cost to the Atlas SKU.": {
+    fr: "Associez chaque coût d’achat au SKU Atlas.",
+    en: "Match each purchase cost to the Atlas SKU.",
+    ar: "اربط تكلفة الشراء برمز المنتج في أطلس."
+  },
+  "Add purchase costs and opening stock.": {
+    fr: "Ajoutez les coûts d’achat et les stocks initiaux.",
+    en: "Add purchase costs and opening stock.",
+    ar: "أضف تكاليف الشراء والمخزون الأولي."
+  },
   "Language": {
     "fr": "Language",
     "en": "Language",
