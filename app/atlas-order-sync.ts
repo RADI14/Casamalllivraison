@@ -26,7 +26,7 @@ export function atlasOrderSnapshot(saved:Record<string,any>,remote:Record<string
  }
  const productChanged=normalizeAtlasProductName(payload.product)!==normalizeAtlasProductName(saved.product)||(Array.isArray(saved.stockItems)&&saved.stockItems.length>1&&payload.quantity!==saved.quantity);
  // Formatting changes preserve the link. A different product name invalidates it.
- if(productChanged){delete payload.atlasSku;delete payload.stockItems;delete payload.productLines;}
+ if(productChanged){delete payload.atlasSku;delete payload.stockItems;}
  else if(Array.isArray(saved.stockItems)&&saved.stockItems.length===1&&payload.quantity!==saved.quantity)payload.stockItems=[{...saved.stockItems[0],quantity:payload.quantity}];
  const stateName=typeof remote.stateName==='string'?remote.stateName:null;
  const state=stateName?.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();

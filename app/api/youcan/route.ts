@@ -26,7 +26,7 @@ export async function POST(req:Request){const actor=await getActor();if(!actor)r
    if(row.local_order_id||row.review_status==='confirmed'){db.exec('ROLLBACK');return out({error:'Seules les commandes non confirmées et non envoyées à Atlas peuvent être supprimées.'},409)}
    if(b.action==='delete'&&!row.deleted_at){changed+=Number(db.prepare('UPDATE youcan_orders SET deleted_at=?,deleted_by=? WHERE id=?').run(new Date().toISOString(),actor.email,id).changes)}
    if(b.action==='restore'&&row.deleted_at){
-    if(row.review_status!=='cancelled'&&!JSON.parse(String(row.payload)).blocked&&activePhoneOrder(db,JSON.parse(String(row.prepared_payload??row.payload)),id)){db.exec('ROLLBACK');return out({error:'Ce numéro a déjà une commande en cours pour le même produit.'},409)}
+    if(row.review_status!=='cancelled'&&!JSON.parse(String(row.payload)).blocked&&activePhoneOrder(db,JSON.parse(String(row.prepared_payload??row.payload)),id)){db.exec('ROLLBACK');return out({error:'Ce numéro a déjà une commande en cours. Restauration impossible.'},409)}
     changed+=Number(db.prepare('UPDATE youcan_orders SET deleted_at=NULL,deleted_by=NULL WHERE id=?').run(id).changes);
    }
   }db.exec('COMMIT');return out({ok:true,changed})}catch(e){db.exec('ROLLBACK');throw e}
@@ -37,13 +37,13 @@ export async function POST(req:Request){const actor=await getActor();if(!actor)r
  if(typeof b.id!=='string')return out({error:'Commande invalide'},400);
  const row=db.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(b.id,storeId());if(!row||actor.role!=='admin'&&row.assigned_email!==actor.email)return out({error:'Commande introuvable'},404);
  if(row.deleted_at)return out({error:'Cette commande est dans la corbeille.'},410);
- if(row.duplicate_of)return out({error:'Commande en double : ce numéro a déjà une commande en cours pour le même produit.',code:'active_phone_order'},409);
+ if(row.duplicate_of)return out({error:'Commande en double : ce numéro a déjà une commande en cours.',code:'active_phone_order'},409);
  if(b.action==='details'){
   if(!row.local_order_id&&!row.prepared_payload)await hydrateYoucan(db,String(row.remote_id));
   reconcileWebsiteDuplicates(db,storeId());
   const fresh=db.prepare('SELECT * FROM youcan_orders WHERE id=? AND store_id=?').get(row.id,storeId())!;
   if(fresh.deleted_at)return out({error:'Cette commande est dans la corbeille.'},410);
-  if(fresh.duplicate_of)return out({error:'Commande en double : ce numéro a déjà une commande en cours pour le même produit.',code:'active_phone_order'},409);
+  if(fresh.duplicate_of)return out({error:'Commande en double : ce numéro a déjà une commande en cours.',code:'active_phone_order'},409);
   const {prepared_payload,...safe}=fresh;
   return out({order:{...safe,payload:localOrderPhones(JSON.parse(String(fresh.payload))),prepared:prepared_payload?localOrderPhones(JSON.parse(String(prepared_payload))):null}});
  }

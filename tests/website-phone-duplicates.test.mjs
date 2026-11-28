@@ -9,16 +9,15 @@ test('different source orders using local/international phone formats expose onl
 test('active WhatsApp parcels reserve both phones; suppressed website repeats stay hidden after delivery, while a new purchase can enter',()=>{const db=setup();db.prepare('INSERT INTO orders VALUES(?,?,?,?,?)').run('parcel',JSON.stringify({phone:'0612345678',phone2:'0712345678'}),'sent',1,'En cours');incoming(db,'1','+212712345678');assert.equal(reconcileWebsiteDuplicates(db,'test-store'),1);assert.equal(db.prepare('SELECT duplicate_of FROM youcan_orders').get().duplicate_of,'order:parcel');assert.equal(activePhoneOrder(db,{phone:'0612345678'}).kind,'order');db.exec("UPDATE orders SET atlas_state=17,atlas_state_name='Livré'");incoming(db,'2','0712345678');reconcileWebsiteDuplicates(db,'test-store');assert.equal(db.prepare("SELECT duplicate_of FROM youcan_orders WHERE id='1'").get().duplicate_of,'order:parcel');assert.equal(db.prepare("SELECT duplicate_of FROM youcan_orders WHERE id='2'").get().duplicate_of,null);db.close()});
 test('cancelled website orders release the phone and prepared corrections reserve the edited phone',()=>{const db=setup();incoming(db,'1','0612345678');db.exec("UPDATE youcan_orders SET review_status='cancelled'");incoming(db,'2','0612345678');incoming(db,'3','0712345678');db.prepare("UPDATE youcan_orders SET prepared_payload=? WHERE id='2'").run(JSON.stringify({phone:'+212712345678'}));reconcileWebsiteDuplicates(db,'test-store');assert.equal(db.prepare("SELECT duplicate_of FROM youcan_orders WHERE id='2'").get().duplicate_of,null);assert.equal(db.prepare("SELECT duplicate_of FROM youcan_orders WHERE id='3'").get().duplicate_of,'website:2');assert.equal(activePhoneOrder(db,{phone:'0612345678'}),null);db.close()});
 
-test('same phone allows a different product and recovers a previously hidden order',()=>{
+test('an active phone blocks other products in both channel directions',()=>{
  const db=setup();
- db.prepare('INSERT INTO orders VALUES(?,?,?,?,?)').run('parcel',JSON.stringify({phone:'0612345678',product:'Chopper',atlasSku:'CHOP'}),'sent',1,'En cours');
- incoming(db,'1','+212612345678',{lines:[{name:'Kitchen knife',sku:'KNIFE'}]});
- incoming(db,'2','0612345678',{lines:[{name:'Hachoir',sku:'CHOP'}]});
- incoming(db,'3','0612345678',{lines:[{name:'Kitchen knife',sku:'KNIFE',quantity:2}]});
- db.exec("UPDATE youcan_orders SET duplicate_of='order:parcel' WHERE id='1'");
- reconcileWebsiteDuplicates(db,'test-store');
- assert.deepEqual(db.prepare('SELECT id,duplicate_of FROM youcan_orders ORDER BY id').all().map(r=>r.duplicate_of),[null,'order:parcel','website:1']);
- assert.equal(activePhoneOrder(db,{phone:'0612345678',product:'Wooden press'}),null);
- assert.equal(activePhoneOrder(db,{phone:'0612345678',product:'Kitchen knife'}).id,'1');
+ const phone='0612345678';
+ incoming(db,'website-first',phone,{lines:[{name:'Kitchen knife'}]});
+ assert.equal(activePhoneOrder(db,{phone,product:'Wooden press'}).id,'website-first');
+ db.exec("UPDATE youcan_orders SET review_status='cancelled'");
+ db.prepare('INSERT INTO orders VALUES(?,?,?,?,?)').run('whatsapp-first',JSON.stringify({phone,product:'Chopper'}),'sent',1,'En cours');
+ incoming(db,'website-second','+212612345678',{lines:[{name:'Kitchen knife'}]});
+ assert.equal(reconcileWebsiteDuplicates(db,'test-store'),1);
+ assert.equal(db.prepare("SELECT duplicate_of FROM youcan_orders WHERE id='website-second'").get().duplicate_of,'order:whatsapp-first');
  db.close();
 });
