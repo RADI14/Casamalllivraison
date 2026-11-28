@@ -4135,4 +4135,4 @@ Object.assign(translations,{"Select an Atlas city before saving.":{en:"Select an
 
 Object.assign(translations,{"Atlas transmission failed.":{en:"Atlas transmission failed.",fr:"La transmission à Atlas a échoué.",ar:"تعذّر إرسال الطلبية لأطلس."}});
 
-Object.assign(translations,{'This phone number already has an active order. Wait until that order is closed before creating another.':{fr:'Ce numéro a déjà une commande en cours. Attendez sa clôture avant de créer une nouvelle commande.',en:'This phone number already has an active order. Wait until that order is closed before creating another.',ar:'هاد الرقم عندو طلب مازال كيتعالج. تسنّى حتى يتسدّ الطلب الأول قبل ما تزيد طلب جديد.'}});
+Object.assign(translations,{'This phone number already has an active order for the same product.':{fr:'Ce numéro a déjà une commande en cours pour le même produit.',en:'This phone number already has an active order for the same product.',ar:'هاد الرقم عندو طلب على نفس المنتج ومازال كيتعالج.'}});

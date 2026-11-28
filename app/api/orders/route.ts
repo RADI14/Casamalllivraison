@@ -21,7 +21,7 @@ import {cancelAtlasParcel} from '../../atlas-cancel';
 import {desc,eq,and,inArray} from 'drizzle-orm';
 const out=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'private, no-store'}});
 export async function GET(){const actor=await getActor();if(!actor)return out({error:'Accès non autorisé'},403);const rows=await getDb().select().from(orders).where(orderScope(actor)).orderBy(desc(orders.createdAt));const photoProducts=await getDb().select({id:products.id,sku:products.sku}).from(products);const ledger=loadCommissionLedger(getSqlite().connection,actor.role==='admin'?undefined:actor.email);const websiteIds=new Set(getSqlite().connection.prepare('SELECT local_order_id FROM youcan_orders WHERE local_order_id IS NOT NULL').all().map(r=>String(r.local_order_id)));return out({orders:rows.map(r=>{const {purchaseTotalCents,unitCostCents,transportEstimateCents,transportActualCents,transportOverrideCents,...safe}=r;return {...(actor.role==='admin'?r:safe),source:websiteIds.has(r.id)?'website':'whatsapp',photoSku:photoProducts.find(p=>p.id===r.productId)?.sku,commission:commission(r),...ledger.states.get(r.id),payload:localOrderPhones(JSON.parse(r.payload))}}),role:actor.role});}
-const activePhoneError='This phone number already has an active order. Wait until that order is closed before creating another.';
+const activePhoneError='This phone number already has an active order for the same product.';
 const phoneConflict=()=>out({error:activePhoneError,code:'active_phone_order'},409);
 async function handlePost(req:Request){
  const user=await getActor();if(!user)return out({error:'Accès non autorisé'},403);
@@ -49,7 +49,6 @@ async function handlePost(req:Request){
  const [existing]=await db.select().from(orders).where(eq(orders.id,id));
  if(existing){if(existing.createdEmail!==user.email)return out({error:'Commande introuvable'},404);const saved=JSON.parse(existing.payload);if(['fullname','phone','phone2','address','cityId','storeId','quantity','price','note','openpackage','change','allowtry'].some(k=>saved[k]!==p[k])||JSON.stringify(saved.stockItems)!==JSON.stringify(items))return out({error:'This order was already saved. Open its details before making changes.'},409);const sent=await transmitOrder(id,user);return out({id,...(await sent.json() as Record<string,unknown>),pending:!sent.ok},sent.ok?200:202)}
  const sql=getSqlite().connection;
- if(activePhoneOrder(sql,p,siteOrder?.id))return phoneConflict();
  if(!p.cityId.trim())return out({error:'Select an Atlas city before saving.'},400);
  if(raw.fulfillmentMode!==undefined&&raw.fulfillmentMode!=='stock')return out({error:'Invalid parcel type.'},400);
  const key=(env as unknown as Record<string,string>).ATLAS_API_KEY;if(!key)return out({error:'Connect Atlas to load your stock.'},409);
@@ -58,10 +57,10 @@ async function handlePost(req:Request){
  const available=normalizeStocks(await atlasRead(key,'/stocks'));
  const selected=items.map(i=>({stock:stockSelection(available,i.stockId,i.quantity),quantity:i.quantity}));
  const stock=selected[0].stock;
- p.quantity=items.reduce((n,i)=>n+i.quantity,0);p.product=selected.length===1?stock.name:selected.map(i=>i.stock.name+' × '+i.quantity).join(' + ');p.stockItems=items;if(selected.length===1)p.atlasSku=stock.sku;
+ p.quantity=items.reduce((n,i)=>n+i.quantity,0);p.product=selected.length===1?stock.name:selected.map(i=>i.stock.name+' × '+i.quantity).join(' + ');p.stockItems=items;p.productLines=selected.map(({stock})=>({stockId:stock.stockId,sku:stock.sku,name:stock.name}));if(selected.length===1)p.atlasSku=stock.sku;
  const locals=await db.select().from(products);const local=selected.length===1?locals.find(p=>p.sku===stock.sku):undefined;const costs=selected.map(i=>{const p=locals.find(p=>p.sku===i.stock.sku);return p?.costCents==null?null:p.costCents*i.quantity});const purchaseTotalCents=selected.length>1&&costs.every(c=>c!==null)?costs.reduce<number>((n,c)=>n+(c??0),0):null;
  const upsellSkus=new Set((getSqlite().connection.prepare('SELECT sku FROM product_commission_settings WHERE upsell=1').all() as {sku:string}[]).map(r=>r.sku));const commissionUpsellStockIds=selected.filter(i=>upsellSkus.has(i.stock.sku)).map(i=>i.stock.stockId);
- // Recheck and reserve the phone in one SQLite write transaction, before contacting Atlas.
+ // Recheck and reserve the phone and product in one SQLite write transaction, before contacting Atlas.
  sql.exec('BEGIN IMMEDIATE');
  try{
   if(activePhoneOrder(sql,p,siteOrder?.id)){sql.exec('ROLLBACK');return phoneConflict()}
